@@ -55,7 +55,6 @@ class menu:
         w, h = pygame.display.get_surface().get_size()
         #location where second cam is plotted in the display
         self.compare_location = [int(2*w/3), int(h/2)]
-        print(f"the compare location is {self.compare_location}")
      
         
     def select_cam(self, second_method = False):            

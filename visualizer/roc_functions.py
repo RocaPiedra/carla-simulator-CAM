@@ -129,11 +129,16 @@ def get_imagenet_dictionary(url=None):
     if url is None:
         url = 'https://gist.githubusercontent.com/yrevar/6135f1bd8dcf2e0cc683/raw/d133d61a09d7e5a3b36b8c111a8dd5c4b5d560ee/imagenet1000_clsid_to_human.pkl'
     try:
-        print('pickle file found, loading file...')
-        imagenet = pickle.load(parameters.imagenet_weights_path)
-    except:
-        print('pickle file was not found, downloading...')
+        with open(parameters.imagenet_weights_path, 'wb') as f:  
+            print(parameters.imagenet_weights_path)
+            print(os.getcwd())
+            print(f)
+            imagenet = pickle.load(f)
+            print('pickle file found, loading file...')
+    except Exception as e:
         imagenet = pickle.load(urlopen(url))
+        print('pickle file was not found, downloading...')
+        print(e)
 
     return imagenet
 
@@ -185,6 +190,7 @@ def get_offset_list(window_res, image_res):
     window_size = [grid_size[0]*image_res[0], grid_size[1]*image_res[1]]
     return offset_list, window_size
 
+
 def surface_to_cam(surface, cam_method, use_cuda=True,
                    target_classes: List[torch.nn.Module] = None):
     array = pygame.surfarray.pixels3d(surface)
@@ -212,8 +218,9 @@ def surface_to_cam(surface, cam_method, use_cuda=True,
         print(f'Model is in GPU: {next(cam_method.model.parameters()).is_cuda}')
     
     try:
-        grayscale_cam, inf_outputs = cam_method(input_tensor)
+        grayscale_cam, inf_outputs, cam_targets = cam_method(input_tensor, target_classes)
         print(f'CAM Generated for model {cam_method.model.__class__.__name__}')
+        print(f'Targets: {cam_targets}')
         grayscale_cam = grayscale_cam[0, :]
 
         visualization = show_cam_on_image(normalized_image, grayscale_cam, use_rgb=True)
@@ -223,28 +230,25 @@ def surface_to_cam(surface, cam_method, use_cuda=True,
     except KeyboardInterrupt:
         print('Closing app')
         
-    except:
-        print(f'Exception handled for input tensor not matching location,\
-            is it cuda? -> {input_tensor.is_cuda}, change location')
-        if input_tensor.is_cuda:
-            input_tensor.to('cpu')
-        else:
-            try:
-                input_tensor = input_tensor.to('cuda')
-            except:
-                print('no memory available for GPU')
-                input_tensor = input_tensor.to('cpu') #could mismatch tensor and cam method which cannot be sent to cpu from here
+    except Exception as e:
+        print(f'Exception:\n{e}')
+        print('Exception handled for CAM computation',
+              f'current location failed Cuda? -> {input_tensor.is_cuda}',
+              '| try CPU execution')
+        input_tensor = input_tensor.to('cpu')
+        cam_method.model.to('cpu')
         try:
             # you can pass the class targets to the cam method if desired to check a target
             grayscale_cam, inf_outputs, cam_targets = cam_method(input_tensor, target_classes)
             print(f'CAM Generated for model {cam_method.model.__class__.__name__}')
+            print(f'Targets: {cam_targets}')
             grayscale_cam = grayscale_cam[0, :]
 
             visualization = show_cam_on_image(normalized_image, grayscale_cam, use_rgb=True)
             cam_surface = pygame.surfarray.make_surface(visualization)
             return cam_surface, inf_outputs, cam_targets
         except Exception as e:
-            print(f"Something failed:\n {e}")
+            print(f"Something failed in the CPU execution:\n {e}")
 
 
 def draw_text(text, font, color, surface, x, y):
@@ -253,9 +257,6 @@ def draw_text(text, font, color, surface, x, y):
     textrect.topleft = (x, y)
     surface.blit(textobj, textrect)
 
-# GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM, FullGrad
-WHITE = (255, 255, 255)
-BUTTON_COLOR = (169,169,169)
 
 def method_menu(font, surface, model, target_layers):
     click = False

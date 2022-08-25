@@ -459,14 +459,14 @@ def main():
 
     try:
         client = carla.Client(args.host, args.port)
-        client.set_timeout(5.0)
+        client.set_timeout(15.0)
 
         run_simulation(args, client)
 
     except (RuntimeError, TypeError, NameError):
         _, generate_traffic = roc_functions.launch_carla_simulator_locally()
         client = carla.Client(args.host, args.port)
-        client.set_timeout(5.0)
+        client.set_timeout(15.0)
         run_simulation(args, client)
 
     except KeyboardInterrupt:
