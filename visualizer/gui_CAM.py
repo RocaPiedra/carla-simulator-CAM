@@ -427,16 +427,12 @@ class gui_CAM:
                 return None
             
         top_locations = np.argpartition(probabilities, -num_detections)[-num_detections:]
-        print('Top 5 results:\n')
-        for pos in top_locations:
-            class_name, class_score = self.get_class_and_score(probabilities, pos)
-            print(f"Class detected: {class_name} with score: {class_score*100}%")
         ordered_locations = top_locations[np.argsort((-probabilities)[top_locations])]
         np.flip(ordered_locations)
-        print('Top 5 ordered results:\n')
+        print('Top 5 ordered results:')
         for pos in ordered_locations:
-            class_name, class_score = self.get_class_and_score(probabilities, pos)
-            print(f"Class detected: {class_name} with score: {class_score*100}%")
+            class_name, class_percentage = self.get_class_and_score(probabilities, pos)
+            print(f"Class detected: {class_name} with score: {class_percentage}%")
         return ordered_locations
     
     
@@ -453,7 +449,7 @@ class gui_CAM:
     def get_class_and_score(self, probabilities, index):
         class_name = self.class_list[index]
         class_score = probabilities[index]
-        return class_name, class_score
+        return class_name, round(class_score*100,2)
     
     
     def run_cam(self, img, cam_method = None, selected_location = None, new_method_name = None):
