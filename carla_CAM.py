@@ -22,7 +22,7 @@ sys.path.append('./carlacomms')
 
 import roc_functions
 import parameters
-from gui_CAM import menu
+from gui_CAM import gui_CAM
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -60,7 +60,10 @@ class DisplayManager:
         pygame.init()
         pygame.font.init()
         self.display = pygame.display.set_mode(window_size, pygame.HWSURFACE | pygame.DOUBLEBUF)
-
+        try:
+            roc_functions.blip_logo(self.display, parameters.carla_logo)
+        except Exception as e:
+            print(f'Logo blip failed with exception:\n{e}')
         self.grid_size = grid_size
         self.window_size = window_size
         self.sensor_list = []
@@ -348,23 +351,28 @@ def run_simulation(args, client):
         SensorManager(world, display_manager, 'SemanticLiDAR', carla.Transform(carla.Location(x=0, z=2.4)), 
                       vehicle, {'channels' : '64', 'range' : '100', 'points_per_second': '100000', 'rotation_frequency': '20'}, display_pos=[1, 2])
 
-        #Lastly, instanciate the menu class to manage the app's options
-        class_menu = menu(display_manager.display, use_cuda)
+        #Lastly, instanciate the gui_CAM class to manage the app's options
+        class_menu = gui_CAM(display_manager.display, use_cuda)
 
-        #Simulation loop --> to be changed with the call to run simulation from the class menu
+        #Simulation loop --> to be changed with the call to run simulation from the class gui_CAM
         call_exit = False
         time_init_sim = timer.time()
-        parameters.call_pause = False
+        parameters.paused = False
         cam_offset = display_manager.get_display_offset([1,0])
+        
+        #Blit the black background before rendering sensors
+        
+        display_manager.display.fill((0,0,0))
+        pygame.display.update() 
         
         while True:
             # Carla Tick
-            if args.sync and not parameters.call_pause:
+            if args.sync and not parameters.paused:
                 world.tick()
                 # Render received data
                 display_manager.render()
                 
-            elif args.sync and parameters.call_pause:
+            elif args.sync and parameters.paused:
                 # increase timeout
                 client.set_timeout(100.0)
                 

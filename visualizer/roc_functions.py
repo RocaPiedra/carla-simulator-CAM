@@ -251,6 +251,17 @@ def surface_to_cam(surface, cam_method, use_cuda=True,
             print(f"Something failed in the CPU execution:\n {e}")
 
 
+def blip_logo(screen, path):
+    logo = pygame.image.load(os.path.join(path)).convert()
+    logo_rect = logo.get_rect(center = screen.get_rect().center)
+    screen.fill((0,0,0))
+    screen.blit(logo, logo_rect)
+    pygame.display.update() 
+    # sleep(2)
+    # screen.fill((0,0,0))
+    # pygame.display.update()
+
+
 def draw_text(text, font, color, surface, x, y):
     textobj = font.render(text, 1, color)
     textrect = textobj.get_rect()
@@ -271,7 +282,7 @@ def method_menu(font, surface, model, target_layers):
     while method_selection:
         
         surface.fill((0,0,0))
-        draw_text('Method Menu', font, (255, 255, 255), surface, 20, 20)
+        draw_text('Method gui_CAM', font, (255, 255, 255), surface, 20, 20)
         
         mx, my = pygame.mouse.get_pos()
         # To delimit the size of the button, in the future use value related to window res

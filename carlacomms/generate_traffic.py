@@ -352,7 +352,7 @@ def main():
         while True:
             if not args.asynch and synchronous_master:
                 world.tick()
-            elif parameters.call_pause:
+            elif parameters.paused:
                 client.set_timeout(100)
             else:
                 world.wait_for_tick()

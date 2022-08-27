@@ -2,38 +2,38 @@
 
 @author: Pablo Roca - github.com/RocaPiedra
 """
-import os
+
 import sys
 import numpy as np
 from PIL import Image
 
 import pygame
 from pygame.locals import *
-from pytorch_grad_cam.utils.image import show_cam_on_image
 from pytorch_grad_cam import GradCAM, ScoreCAM, GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM, FullGrad
 sys.path.append('../visualizer')
-from roc_functions import draw_text, surface_to_cam
+from roc_functions import draw_text
 
 import torch
-from torch.autograd import Variable
 from torchvision import transforms
 from torchvision.models import resnet18, resnet34, resnet50, alexnet, vgg11, vgg19
 import parameters
 
 from parameters import BUTTON_COLOR, WHITE
 
-from urllib.request import urlopen
-from multiprocessing import Process
 import roc_functions
 import time
 import gc
 
 debug = False
 
-class menu:
+class gui_CAM:
     def __init__(self, display, use_cuda = True):
-        self.model = resnet18(pretrained=True)
+        self.model = resnet50(pretrained=True)
         self.display = display
+        try:
+            roc_functions.blip_logo(self.display, parameters.gui_cam_logo)
+        except Exception as e:
+            print(f'Logo blip failed with exception:\n{e}')
         self.use_cuda = use_cuda
         self.font = pygame.font.SysFont(None, 24)
         self.target_layers = self.select_target_layer()
@@ -52,9 +52,9 @@ class menu:
             
         self.surface = None
         self.main_location = None
-        w, h = pygame.display.get_surface().get_size()
+        self.display_width, self.display_height = pygame.display.get_surface().get_size()
         #location where second cam is plotted in the display
-        self.compare_location = [int(2*w/3), int(h/2)]
+        self.compare_location = [int(2*self.display_width/3), int(self.display_height/2)]
      
         
     def select_cam(self, second_method = False):            
@@ -70,7 +70,7 @@ class menu:
 
         while method_selection:
             
-            draw_text('Model Menu', self.font, (255, 255, 255), self.display, 20, 20)
+            draw_text('Model gui_CAM', self.font, (255, 255, 255), self.display, 20, 20)
             
             mx, my = pygame.mouse.get_pos()
             # To delimit the size of the button, in the future use value related to window res
@@ -79,27 +79,27 @@ class menu:
             button_height = 40
             
             grad_button = pygame.Rect(positions[0][0], positions[0][1], button_width, button_height)
-            score_button = pygame.Rect(positions[1][0], positions[1][1], button_width, button_height)
+            score_button = pygame.Rect(positions[4][0], positions[4][1], button_width, button_height)
             xgradcam_button = pygame.Rect(positions[2][0], positions[2][1], button_width, button_height)
-            ablation_button = pygame.Rect(positions[3][0], positions[3][1], button_width, button_height)
-            eigen_button = pygame.Rect(positions[4][0], positions[4][1], button_width, button_height)
-            fullgrad_button = pygame.Rect(positions[5][0], positions[5][1], button_width, button_height)
-            gradcampp_button = pygame.Rect(positions[6][0], positions[6][1], button_width, button_height)
+            ablation_button = pygame.Rect(positions[5][0], positions[5][1], button_width, button_height)
+            eigen_button = pygame.Rect(positions[6][0], positions[6][1], button_width, button_height)
+            fullgrad_button = pygame.Rect(positions[3][0], positions[3][1], button_width, button_height)
+            gradcampp_button = pygame.Rect(positions[1][0], positions[1][1], button_width, button_height)
 
             pygame.draw.rect(self.display, self.CAM_BUTTON_COLOR, grad_button)
             draw_text('GradCAM', self.font, (255, 255, 255), self.display, positions[0][0], positions[0][1]+button_height-15)
             pygame.draw.rect(self.display, self.CAM_BUTTON_COLOR, score_button)
-            draw_text('ScoreCAM', self.font, (255, 255, 255), self.display, positions[1][0], positions[1][1]+button_height-15)
+            draw_text('ScoreCAM', self.font, (255, 255, 255), self.display, positions[4][0], positions[4][1]+button_height-15)
             pygame.draw.rect(self.display, self.CAM_BUTTON_COLOR, xgradcam_button)
             draw_text('XGradCAM', self.font, (255, 255, 255), self.display, positions[2][0], positions[2][1]+button_height-15)
             pygame.draw.rect(self.display, self.CAM_BUTTON_COLOR, ablation_button)
-            draw_text('AblationCAM', self.font, (255, 255, 255), self.display, positions[3][0], positions[3][1]+button_height-15)
+            draw_text('AblationCAM', self.font, (255, 255, 255), self.display, positions[5][0], positions[5][1]+button_height-15)
             pygame.draw.rect(self.display, self.CAM_BUTTON_COLOR, eigen_button)
-            draw_text('EigenCAM', self.font, (255, 255, 255), self.display, positions[4][0], positions[4][1]+button_height-15)
+            draw_text('EigenCAM', self.font, (255, 255, 255), self.display, positions[6][0], positions[6][1]+button_height-15)
             pygame.draw.rect(self.display, self.CAM_BUTTON_COLOR, fullgrad_button)
-            draw_text('FullGrad', self.font, (255, 255, 255), self.display, positions[5][0], positions[5][1]+button_height-15)
+            draw_text('FullGrad', self.font, (255, 255, 255), self.display, positions[3][0], positions[3][1]+button_height-15)
             pygame.draw.rect(self.display, self.CAM_BUTTON_COLOR, gradcampp_button)
-            draw_text('GradCAM++', self.font, (255, 255, 255), self.display, positions[6][0], positions[6][1]+button_height-15)
+            draw_text('GradCAM++', self.font, (255, 255, 255), self.display, positions[1][0], positions[1][1]+button_height-15)
 
             if grad_button.collidepoint((mx, my)):
                 if self.click:
@@ -266,7 +266,7 @@ class menu:
 
         while model_selection:
             
-            draw_text('model Menu', self.font, (255, 255, 255), self.display, 20, 20)
+            draw_text('model gui_CAM', self.font, (255, 255, 255), self.display, 20, 20)
             
             mx, my = pygame.mouse.get_pos()
             # To delimit the size of the button, in the future use value related to window res
@@ -413,14 +413,30 @@ class menu:
             print(f'target class is {target_class}')
             print(f"SINGLE DETECTION: {class_name} || {class_score*100}% ")
             
-        return class_name, class_score
+        return class_name, class_score, probabilities
     
     
     def get_top_detections(self, input_image = None, probabilities = None, num_detections = 5):
+        if probabilities is None:
+            if input_image is not None:
+                _,_,probabilities = self.get_detection(input_image)
+                probabilities = probabilities.to('cpu')
+                probabilities = probabilities.cpu().detach().numpy()
+            else:
+                print('inputs missing')
+                return None
+            
         top_locations = np.argpartition(probabilities, -num_detections)[-num_detections:]
+        print('Top 5 results:\n')
+        for pos in top_locations:
+            class_name, class_score = self.get_class_and_score(probabilities, pos)
+            print(f"Class detected: {class_name} with score: {class_score*100}%")
         ordered_locations = top_locations[np.argsort((-probabilities)[top_locations])]
         np.flip(ordered_locations)
-        
+        print('Top 5 ordered results:\n')
+        for pos in ordered_locations:
+            class_name, class_score = self.get_class_and_score(probabilities, pos)
+            print(f"Class detected: {class_name} with score: {class_score*100}%")
         return ordered_locations
     
     
@@ -432,6 +448,12 @@ class menu:
         class_name = self.class_list[target_class]
         class_score = probabilities[target_class]
         return class_name, class_score.cpu().detach().numpy()
+    
+    
+    def get_class_and_score(self, probabilities, index):
+        class_name = self.class_list[index]
+        class_score = probabilities[index]
+        return class_name, class_score
     
     
     def run_cam(self, img, cam_method = None, selected_location = None, new_method_name = None):
@@ -455,17 +477,17 @@ class menu:
         
         if selected_location is None:
             self.surface = surface
-            self.render()
+            self.render_cam()
             # self.render_text()
         else:
             score_string = f"Class detected: {class_name} with score: {class_percentage}%"
-            self.render(selected_location, surface, score_string, new_method_name)
+            self.render_cam(selected_location, surface, score_string, new_method_name)
             # self.render_text()
         
         return class_name, class_percentage
 
     
-    def render(self, selected_location = None, surface_to_plot = None, second_classification = None, new_method_name = None):
+    def render_cam(self, selected_location = None, surface_to_plot = None, second_classification = None, new_method_name = None):
         if surface_to_plot is None:
             self.display.blit(self.surface, self.main_location)
             pygame.display.update() 
@@ -566,7 +588,7 @@ class menu:
     def run_menu_no_loop(self, event, call_exit, input_image, offset):
         if not self.main_location:
             self.main_location = offset
-        if parameters.call_pause == True:
+        if parameters.paused == True:
             last_pause = True
             if not last_pause:
                 print('PAUSED')
@@ -582,8 +604,8 @@ class menu:
                 call_exit = True
                 return call_exit
             elif event.key == K_SPACE:
-                parameters.call_pause = not parameters.call_pause
-                if parameters.call_pause:
+                parameters.paused = not parameters.paused
+                if parameters.paused:
                     if self.cam is not None:
                         if input_image:
                             class_name, class_score = self.run_cam(input_image)
@@ -599,10 +621,10 @@ class menu:
                         print(no_cam_warning)
                         draw_text(no_cam_warning, self.font, (255, 255, 255), self.display, 0, 0)
                         pygame.display.update()
-                        parameters.call_pause = False
+                        parameters.paused = False
                         
             elif event.key == pygame.K_m:
-                if not parameters.call_pause:
+                if not parameters.paused:
                     cam_name = self.select_cam()
                     if cam_name != self.cam_name:
                         self.cam = self.load_cam_if()
@@ -621,16 +643,17 @@ class menu:
                         print('[W] No input image')
                 
             elif event.key == pygame.K_n:
-                if not parameters.call_pause:
+                if not parameters.paused:
                     self.select_model()
                     return False
             
             elif event.key == pygame.K_t:
-                if not parameters.call_pause:
-                    print('show tops')
-                else:
-                    self.get_top_detections(input_image)
-                    self.get_detection(input_image)
+                self.get_top_detections(input_image)
+                # if not parameters.paused:
+                #     print('show tops')
+                # else:
+                #     self.get_top_detections(input_image)
+                #     # self.get_detection(input_image)
                 return False
 
             elif event.key == pygame.K_s:
@@ -638,20 +661,21 @@ class menu:
                 return False
                     
                 
-        if parameters.call_pause:
-            self.render(offset)
+        if parameters.paused:
+            self.render_cam(offset)
             pygame.display.update()              
                             
 if __name__ == '__main__':
     pygame.init()
     pygame.font.init() #for fonts rendering
     display = pygame.display.set_mode([1920,1080], pygame.HWSURFACE | pygame.DOUBLEBUF)
-    test_menu = menu(display)
+    test_menu = gui_CAM(display)
     call_exit = False
     sample_image = pygame.image.load('/home/roc/tfm/XAI-Visualizer/input_images/carla_input/1.png')
     display.blit(sample_image, [0,0])
     pygame.display.update()
-    input("enter to pass loaded image")
+    # input("enter to pass loaded image")
     while not call_exit:
-        for event in pygame.event.get():    
+        for event in pygame.event.get():
+            # print(f'Event: {event}')
             call_exit = test_menu.run_menu_no_loop(event, call_exit, sample_image, [0,0])
