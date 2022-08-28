@@ -305,6 +305,11 @@ def blip_logo(screen, path):
     # screen.fill((0,0,0))
     # pygame.display.update()
 
+def blip_image_centered(screen, img):
+    img_rect = img.get_rect(center = screen.get_rect().center)
+    screen.fill((0,0,0))
+    screen.blit(img, img_rect)
+    pygame.display.update() 
 
 def draw_text(text, font, color, surface, x, y):
     textobj = font.render(text, 1, color)
