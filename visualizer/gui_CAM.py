@@ -4,6 +4,8 @@
 """
 
 import sys
+import os
+import random
 import numpy as np
 from PIL import Image
 
@@ -723,9 +725,14 @@ if __name__ == '__main__':
     display = pygame.display.set_mode([1920,1080], pygame.HWSURFACE | pygame.DOUBLEBUF)
     test_menu = gui_CAM(display)
     call_exit = False
-    sample_image = pygame.image.load('/home/roc/tfm/XAI-Visualizer/input_images/carla_input/1.png')
+    # file_path = 'utils/test_images/carla_input/1.png'
+    path = '/home/roc/imagenet-sample-images'
+    image_name = random.choice(os.listdir(path))
+    print(image_name)
+    file_path = os.path.join(path, image_name)
+    sample_image = pygame.image.load(file_path)
     display.blit(sample_image, [0,0])
-    pygame.display.update()
+    roc_functions.blip_image_centered(display, sample_image)
     # input("enter to pass loaded image")
     while not call_exit:
         for event in pygame.event.get():

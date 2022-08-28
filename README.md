@@ -39,6 +39,11 @@ The app offers interactive ways to select different parameters of the visualizat
 - Eigen-CAM
 
 
+## Notes
+
+To test random imagenet images it is possible to use the next repository:
+https://github.com/EliSchwartz/imagenet-sample-images
+
 
 ## References
 This project would not be possible without the incredible work from:
