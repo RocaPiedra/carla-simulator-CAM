@@ -159,10 +159,13 @@ def check_relevant_classes(top_detected_classes, class_list):
     
     for idx in top_detected_classes:
         if idx in parameters.imagenet_relevant_classes:
-            print(f'Relevant class {class_list[idx]} DETECTED')
+            print(f'\nRelevant class {class_list[idx]} DETECTED\n')
             return idx
-    print(f'No relevant classes detected in the top {top_detected_classes.size()}',
-            f'classes detected, return top 1: {class_list[top_detected_classes[0]]}')
+    try:
+        print(f'No relevant classes detected in the top {top_detected_classes.size()}')
+        print(f'No relevant classes detected, return top 1: {class_list[top_detected_classes[0]]}')
+    except Exception as e:
+        print(e)
     return top_detected_classes[0]
 
 
@@ -253,7 +256,6 @@ def surface_to_cam(surface, cam_method, use_cuda=True,
     try:
         grayscale_cam, inf_outputs, cam_targets = cam_method(input_tensor, target_classes)
         print(f'CAM Generated for model {cam_method.model.__class__.__name__}')
-        print(f'Targets: {cam_targets}')
         grayscale_cam = grayscale_cam[0, :]
 
         visualization = show_cam_on_image(normalized_image, grayscale_cam, use_rgb=True)
@@ -274,7 +276,6 @@ def surface_to_cam(surface, cam_method, use_cuda=True,
             # you can pass the class targets to the cam method if desired to check a target
             grayscale_cam, inf_outputs, cam_targets = cam_method(input_tensor, target_classes)
             print(f'CAM Generated for model {cam_method.model.__class__.__name__}')
-            print(f'Targets: {cam_targets}')
             
             if debug:
                 try:

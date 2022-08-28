@@ -24,6 +24,7 @@ So far only RGB camera feed is analyzed due to the CAM algorithm compatibilities
 import glob
 import os
 import sys
+import traceback
 
 sys.path.append('./visualizer')
 sys.path.append('./carlacomms')
@@ -48,10 +49,7 @@ import numpy as np
 
 import os
 
-try:
-    import pygame
-except ImportError:
-    raise RuntimeError('cannot import pygame, make sure pygame package is installed')
+import pygame
 
 class CustomTimer:
     def __init__(self):
@@ -411,10 +409,12 @@ def run_simulation(args, client):
                 print("called exit, finishing execution")
                 break
     except Exception as e:
-        exc_type, exc_obj, exc_tb = sys.exc_info()
-        fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-        print(f'Is the simulation running?:\n{e}')
-        print(exc_type, fname, exc_tb.tb_lineno)
+        print(f'Is the simulation running?\n{e}')
+        print('****\ntraceback.format_exc():\n****',traceback.format_exc())
+        # exc_type, exc_obj, exc_tb = sys.exc_info()
+        # fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+        # print(exc_type, fname, exc_tb.tb_lineno)
+        
     finally:
         if display_manager:
             display_manager.destroy()
