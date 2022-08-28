@@ -10,6 +10,7 @@ from PIL import Image
 import pygame
 from pygame.locals import *
 from pytorch_grad_cam import GradCAM, ScoreCAM, GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM, FullGrad
+from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 sys.path.append('../visualizer')
 from roc_functions import draw_text
 
@@ -46,6 +47,7 @@ class gui_CAM:
         self.class_list = roc_functions.get_imagenet_dictionary(url=None) 
         self.cam = None
         self.classification_output = ''  
+        self.filtered_cam = True #Determines if the target classes are filtered for the desired ones
         if torch.cuda.is_available() and self.use_cuda:
             self.model.to('cuda')
             print("System is cuda ready")
@@ -55,7 +57,7 @@ class gui_CAM:
         self.display_width, self.display_height = pygame.display.get_surface().get_size()
         #location where second cam is plotted in the display
         self.compare_location = [int(2*self.display_width/3), int(self.display_height/2)]
-     
+
         
     def select_cam(self, second_method = False):            
         method_selection = True
@@ -218,7 +220,10 @@ class gui_CAM:
         new_method_name = self.select_cam(second_method = True)
         old_method_name = self.method_name
         new_cam_method = self.load_cam_if(method_name = new_method_name)
-        class_name, class_score = self.run_cam(img, new_cam_method, self.compare_location, new_method_name)
+        if self.filtered_cam:
+            class_name, class_score = self.run_cam_filtered(img)
+        else:
+            class_name, class_score = self.run_cam(img)
         print(f"compared {old_method_name} to {new_method_name} \
             -> finished with output {class_name}|{class_score}%")
         time.sleep(10)
@@ -429,7 +434,7 @@ class gui_CAM:
         top_locations = np.argpartition(probabilities, -num_detections)[-num_detections:]
         ordered_locations = top_locations[np.argsort((-probabilities)[top_locations])]
         np.flip(ordered_locations)
-        print('Top 5 ordered results:')
+        print(f'Top {num_detections} ordered results:')
         for pos in ordered_locations:
             class_name, class_percentage = self.get_class_and_score(probabilities, pos)
             print(f"Class detected: {class_name} with score: {class_percentage}%")
@@ -450,8 +455,42 @@ class gui_CAM:
         class_name = self.class_list[index]
         class_score = probabilities[index]
         return class_name, round(class_score*100,2)
+
     
-    
+    def run_cam_filtered(self, img, cam_method = None, selected_location = None, new_method_name = None):
+        if cam_method is None:
+            cam_method = self.cam
+        else:
+            # try this to free GPU memory and avoid errors (cam must be instanced afterwards again!)
+            del self.cam
+            
+        gc.collect()
+        torch.cuda.empty_cache()
+        t0 = time.time()
+        # get the top detected classes to select a target later:
+        top_detected_classes = self.get_top_detections(img,  probabilities = None, num_detections = 10)
+        self.target_class = [ClassifierOutputTarget(roc_functions.check_relevant_classes(top_detected_classes, self.class_list))]
+        # get the cam heat map in a pygame image
+        surface, inf_outputs, cam_targets =  roc_functions.surface_to_cam(img, cam_method, self.use_cuda, self.target_class)
+        print('time needed for visualization method creation :', time.time()-t0)
+        
+        t1 = time.time()
+        class_name, class_score = self.prob_calc_efficient(inf_outputs)
+        class_percentage = str(round(class_score*100,2))
+        print('time needed for probabilities calculation:', time.time()-t1)
+        
+        if selected_location is None:
+            self.surface = surface
+            self.render_cam()
+            # self.render_text()
+        else:
+            score_string = f"Class detected: {class_name} with score: {class_percentage}%"
+            self.render_cam(selected_location, surface, score_string, new_method_name)
+            # self.render_text()
+        
+        return class_name, class_percentage
+        
+        
     def run_cam(self, img, cam_method = None, selected_location = None, new_method_name = None):
         if cam_method is None:
             cam_method = self.cam
@@ -604,11 +643,17 @@ class gui_CAM:
                 if parameters.paused:
                     if self.cam is not None:
                         if input_image:
-                            class_name, class_score = self.run_cam(input_image)
+                            if self.filtered_cam:
+                                class_name, class_score = self.run_cam_filtered(input_image)
+                            else:
+                                class_name, class_score = self.run_cam(input_image)
                             self.last_image_evaluated = input_image
                         else:
                             print('[W] No input image')
-                            class_name, class_score = self.run_cam()
+                            if self.filtered_cam:
+                                class_name, class_score = self.run_cam_filtered()
+                            else:
+                                class_name, class_score = self.run_cam()
                         
                         self.classification_output = f"Class detected: {class_name} with score: {class_score}%"
                         print(self.classification_output)
@@ -664,7 +709,7 @@ class gui_CAM:
 if __name__ == '__main__':
     pygame.init()
     pygame.font.init() #for fonts rendering
-    display = pygame.display.set_mode([1920,1080], pygame.HWSURFACE | pygame.DOUBLEBUF)
+    display = pygame.display.set_mode([1280,720], pygame.HWSURFACE | pygame.DOUBLEBUF)
     test_menu = gui_CAM(display)
     call_exit = False
     sample_image = pygame.image.load('/home/roc/tfm/XAI-Visualizer/input_images/carla_input/1.png')

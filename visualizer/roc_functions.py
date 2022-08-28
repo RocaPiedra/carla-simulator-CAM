@@ -7,6 +7,7 @@ import sys
 import numpy as np
 from PIL import Image
 from typing import List
+from matplotlib import pyplot as plt
 
 import pygame
 from pygame.locals import *
@@ -17,6 +18,7 @@ sys.path.append('../visualizer')
 import torch
 from torch.autograd import Variable
 from torchvision import models
+
 import parameters
 
 import pickle
@@ -25,6 +27,7 @@ from urllib.request import urlopen
 import subprocess, signal
 from time import sleep
 
+debug = False
 
 
 def preprocess_image(pil_im, sendToGPU=True, resize_im=True):
@@ -62,6 +65,12 @@ def preprocess_image(pil_im, sendToGPU=True, resize_im=True):
         im_as_arr[channel] /= std[channel]
     # Convert to float tensor
     im_as_ten = torch.from_numpy(im_as_arr).float()
+    if debug:
+        try:
+            plt.imshow(im_as_ten.permute(2, 1, 0))
+            plt.show()
+        except Exception as e:
+            print('plt.imshow(im_as_ten.permute(1, 2, 0)) failed:\n',e)
     # Add one more channel to the beginning. Tensor shape = 1,3,224,224
     im_as_ten.unsqueeze_(0)
     # Convert to Pytorch variable
@@ -71,6 +80,7 @@ def preprocess_image(pil_im, sendToGPU=True, resize_im=True):
         im_as_var = im_as_var.to('cuda')
     return im_as_var
 
+
 def get_image_path(path, filename):
     if filename == None:
         onlyimages = [path + f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f)) & f.endswith(('.jpg','.png'))]
@@ -78,6 +88,7 @@ def get_image_path(path, filename):
     else:
         image_path = path + filename
         return image_path
+
 
 def choose_model(input_argument = None, model_name = None):
     if model_name == 'resnet':
@@ -105,15 +116,18 @@ def choose_model(input_argument = None, model_name = None):
         print('Option incorrect, set default model: Alexnet')
         return models.alexnet(pretrained=True)
 
+
 def get_top_classes(output, number_of_classes = 5):
     idx = np.argpartition(output, -number_of_classes)[-number_of_classes:]
     return idx
+
 
 def get_top_detections(probabilities, num_detections = 5):
         top_locations = np.argpartition(probabilities, -num_detections)[-num_detections:]
         ordered_locations = top_locations[np.argsort((-probabilities)[top_locations])]
         np.flip(ordered_locations)    
         return top_locations, ordered_locations
+
 
 def get_class_name_imagenet(idx):
     try:
@@ -125,14 +139,12 @@ def get_class_name_imagenet(idx):
 
     return imagenet[idx]
 
+
 def get_imagenet_dictionary(url=None):
     if url is None:
         url = 'https://gist.githubusercontent.com/yrevar/6135f1bd8dcf2e0cc683/raw/d133d61a09d7e5a3b36b8c111a8dd5c4b5d560ee/imagenet1000_clsid_to_human.pkl'
     try:
         with open(parameters.imagenet_weights_path, 'wb') as f:  
-            print(parameters.imagenet_weights_path)
-            print(os.getcwd())
-            print(f)
             imagenet = pickle.load(f)
             print('pickle file found, loading file...')
     except Exception as e:
@@ -141,6 +153,18 @@ def get_imagenet_dictionary(url=None):
         print(e)
 
     return imagenet
+
+
+def check_relevant_classes(top_detected_classes, class_list):
+    
+    for idx in top_detected_classes:
+        if idx in parameters.imagenet_relevant_classes:
+            print(f'Relevant class {class_list[idx]} DETECTED')
+            return idx
+    print(f'No relevant classes detected in the top {top_detected_classes.size()}',
+            f'classes detected, return top 1: {class_list[top_detected_classes[0]]}')
+    return top_detected_classes[0]
+
 
 def launch_carla_simulator_locally(unreal_engine_path = parameters.unreal_engine_path):
     sim_running = False
@@ -167,6 +191,7 @@ def launch_carla_simulator_locally(unreal_engine_path = parameters.unreal_engine
         generate_traffic = subprocess.Popen(["python3", "../carlacomms/generate_traffic.py", '--asynch', '--tm-port=8001'], stdout=subprocess.PIPE)
     return unreal_engine, generate_traffic
 
+
 def close_carla_simulator():
     if os.name == 'nt':
         print('windows termination process:')
@@ -179,6 +204,7 @@ def close_carla_simulator():
             if 'CarlaUE4-Linux-' in str(line):
                 pid = int(line.split(None, 1)[0])
                 os.kill(pid, signal.SIGKILL)
+
 
 def get_offset_list(window_res, image_res):
     grid_size = [int(np.fix(window_res[0]/image_res[0])), int(np.fix(window_res[1]/image_res[1]))]
@@ -195,27 +221,34 @@ def surface_to_cam(surface, cam_method, use_cuda=True,
                    target_classes: List[torch.nn.Module] = None):
     array = pygame.surfarray.pixels3d(surface)
     normalized_image = np.float32(array/255)
+    # if debug:
+    #     try:
+    #         # to plot the image with the correct orientation
+    #         plt.imshow(array.transpose(1, 0, 2))
+    #         plt.show()
+    #     except Exception as e:
+    #         print(f'plt.imshow(array.permute(1, 2, 0)) failed:\n{e}')
+            
     input_tensor = preprocess_image(array, use_cuda, False)
     
+    if debug:
+        try:
+            cpu_tensor = input_tensor.to('cpu')
+            plt.imshow(cpu_tensor.detach().numpy().squeeze().transpose(2,1,0))
+            plt.show()
+        except Exception as e:
+            print(f'plt.imshow(input_tensor.permute(1, 2, 0)) failed:\n{e}')
+            
     print(f'Verify input tensor and model location, GPU usage selected: {use_cuda}')
     print(f'Input Tensor is in GPU: {input_tensor.is_cuda}')
     print(f'Model is in GPU: {next(cam_method.model.parameters()).is_cuda}')
     
-    if input_tensor.is_cuda != next(cam_method.model.parameters()).is_cuda:
-        print('The input and the model location do not match. Trying to solve the problem...')
-        if use_cuda:
-            input_tensor = input_tensor.to('cuda')
-            cam_method.model.to('cuda')
-            # cam_method.model.cuda() # Does the same
-            print('Input and model moved to GPU')
-        else:
-            input_tensor = input_tensor.to('cpu')
-            cam_method.model.to('cpu')
-            print('Input and model moved to CPU')
-    
-        print(f'New location:')
-        print(f'Input Tensor is in GPU: {input_tensor.is_cuda}')
-        print(f'Model is in GPU: {next(cam_method.model.parameters()).is_cuda}')
+    if use_cuda:
+        input_tensor = input_tensor.to('cuda')
+        cam_method.model.to('cuda')
+    else:
+        input_tensor = input_tensor.to('cpu')
+        cam_method.model.to('cpu')
     
     try:
         grayscale_cam, inf_outputs, cam_targets = cam_method(input_tensor, target_classes)
@@ -242,6 +275,16 @@ def surface_to_cam(surface, cam_method, use_cuda=True,
             grayscale_cam, inf_outputs, cam_targets = cam_method(input_tensor, target_classes)
             print(f'CAM Generated for model {cam_method.model.__class__.__name__}')
             print(f'Targets: {cam_targets}')
+            
+            if debug:
+                try:
+                    plt.imshow(grayscale_cam.permute(1, 2, 0))
+                    plt.show()
+                except Exception as e:
+                    print(f'plt.imshow(grayscale_cam.permute(1, 2, 0)) failed:\n{e}')
+                    plt.imshow(grayscale_cam)
+                    plt.show()
+            
             grayscale_cam = grayscale_cam[0, :]
 
             visualization = show_cam_on_image(normalized_image, grayscale_cam, use_rgb=True)
@@ -367,6 +410,7 @@ def method_menu(font, surface, model, target_layers):
         pygame.display.update()
 
     return cam_method, method_name, offsetpos
+
 
 def check_pytorch_cuda_memory():
     print("torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))

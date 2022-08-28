@@ -7,9 +7,17 @@
 # For a copy, see <https://opensource.org/licenses/MIT>.
 
 """
-Script that render multiple sensors in the same pygame window
+Original script from https://github.com/carla-simulator
+
+Script that render multiple sensors in the same pygame window.
+
+Oriented towards creating visual explanations for deep learning models.
 
 By default, it renders four cameras, one LiDAR and one Semantic LiDAR.
+
+So far only RGB camera feed is analyzed due to the CAM algorithm compatibilities.
+
+@author: Pablo Roca - github.com/RocaPiedra
 
 """
 
@@ -54,6 +62,7 @@ class CustomTimer:
 
     def time(self):
         return self.timer()
+
 
 class DisplayManager:
     def __init__(self, grid_size, window_size):
@@ -290,7 +299,8 @@ class SensorManager:
             (self.display_offset[1]<location[1]<self.display_offset[1]+self.display_size[1])):
             print(f'you have clicked position {location}, sensor selected is')
             return True
-            
+
+
 def run_simulation(args, client):
     """This function performed one test run using the args parameters
     and connecting to the carla client passed.
@@ -403,7 +413,7 @@ def run_simulation(args, client):
     except Exception as e:
         exc_type, exc_obj, exc_tb = sys.exc_info()
         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-        print(f'SOMETHING WENT WRONG DURING THE SIMULATION, EXCEPTION HANDLED IS:\n{e}')
+        print(f'Is the simulation running?:\n{e}')
         print(exc_type, fname, exc_tb.tb_lineno)
     finally:
         if display_manager:
@@ -467,7 +477,7 @@ def main():
 
     try:
         client = carla.Client(args.host, args.port)
-        client.set_timeout(15.0)
+        client.set_timeout(5.0)
 
         run_simulation(args, client)
 
