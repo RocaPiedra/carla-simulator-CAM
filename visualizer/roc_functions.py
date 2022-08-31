@@ -27,7 +27,7 @@ from urllib.request import urlopen
 import subprocess, signal
 from time import sleep
 
-debug = False
+parameters.debug = False
 
 
 def preprocess_image(pil_im, sendToGPU=True, resize_im=True):
@@ -65,12 +65,12 @@ def preprocess_image(pil_im, sendToGPU=True, resize_im=True):
         im_as_arr[channel] /= std[channel]
     # Convert to float tensor
     im_as_ten = torch.from_numpy(im_as_arr).float()
-    if debug:
+    if parameters.debug:
         try:
             plt.imshow(im_as_ten.permute(2, 1, 0))
             plt.show()
         except Exception as e:
-            print('plt.imshow(im_as_ten.permute(1, 2, 0)) failed:\n',e)
+            print('[W]plt.imshow(im_as_ten.permute(1, 2, 0)) failed:\n',e)
     # Add one more channel to the beginning. Tensor shape = 1,3,224,224
     im_as_ten.unsqueeze_(0)
     # Convert to Pytorch variable
@@ -127,6 +127,23 @@ def get_top_detections(probabilities, num_detections = 5):
         ordered_locations = top_locations[np.argsort((-probabilities)[top_locations])]
         np.flip(ordered_locations)    
         return top_locations, ordered_locations
+
+
+def all_score_to_percentage(output):
+        # The output has unnormalized scores. To get probabilities, run a softmax on it.
+        probabilities = torch.nn.functional.softmax(output[0], dim=0)
+        probabilities = probabilities.to('cpu')
+        return probabilities.cpu().detach().numpy()
+
+
+def top_score_to_percentage(output, class_list):
+        # The output has unnormalized scores. To get probabilities, run a softmax on it.
+        probabilities = torch.nn.functional.softmax(output[0], dim=0)
+        probabilities = probabilities.to('cpu')
+        target_class = np.argmax(probabilities.data.numpy())
+        class_name = class_list[target_class]
+        class_score = probabilities[target_class]
+        return class_name, class_score.cpu().detach().numpy()
 
 
 def get_class_name_imagenet(idx):
@@ -223,24 +240,25 @@ def get_offset_list(window_res, image_res):
 def surface_to_cam(surface, cam_method, use_cuda=True,
                    target_classes: List[torch.nn.Module] = None):
     array = pygame.surfarray.pixels3d(surface)
-    normalized_image = np.float32(array/255)
-    # if debug:
+    # if parameters.debug:
     #     try:
     #         # to plot the image with the correct orientation
     #         plt.imshow(array.transpose(1, 0, 2))
     #         plt.show()
+            # input('showing the input tensor, press enter to continue')
     #     except Exception as e:
     #         print(f'plt.imshow(array.permute(1, 2, 0)) failed:\n{e}')
             
     input_tensor = preprocess_image(array, use_cuda, False)
     
-    if debug:
+    if parameters.debug:
         try:
             cpu_tensor = input_tensor.to('cpu')
             plt.imshow(cpu_tensor.detach().numpy().squeeze().transpose(2,1,0))
             plt.show()
+            input('showing the input tensor, press enter to continue')
         except Exception as e:
-            print(f'plt.imshow(input_tensor.permute(1, 2, 0)) failed:\n{e}')
+            print(f'[W]plt.imshow(input_tensor.permute(1, 2, 0)) failed:\n{e}')
             
     print(f'Verify input tensor and model location, GPU usage selected: {use_cuda}')
     print(f'Input Tensor is in GPU: {input_tensor.is_cuda}')
@@ -252,6 +270,8 @@ def surface_to_cam(surface, cam_method, use_cuda=True,
     else:
         input_tensor = input_tensor.to('cpu')
         cam_method.model.to('cpu')
+    
+    normalized_image = np.float32(array/255)
     
     try:
         grayscale_cam, inf_outputs, cam_targets = cam_method(input_tensor, target_classes)
@@ -277,12 +297,12 @@ def surface_to_cam(surface, cam_method, use_cuda=True,
             grayscale_cam, inf_outputs, cam_targets = cam_method(input_tensor, target_classes)
             print(f'CAM Generated for model {cam_method.model.__class__.__name__}')
             
-            if debug:
+            if parameters.debug:
                 try:
                     plt.imshow(grayscale_cam.permute(1, 2, 0))
                     plt.show()
                 except Exception as e:
-                    print(f'plt.imshow(grayscale_cam.permute(1, 2, 0)) failed:\n{e}')
+                    print(f'[W]plt.imshow(grayscale_cam.permute(1, 2, 0)) failed:\n{e}')
                     plt.imshow(grayscale_cam)
                     plt.show()
             
@@ -310,6 +330,7 @@ def blip_image_centered(screen, img):
     screen.fill((0,0,0))
     screen.blit(img, img_rect)
     pygame.display.update() 
+
 
 def draw_text(text, font, color, surface, x, y):
     textobj = font.render(text, 1, color)
