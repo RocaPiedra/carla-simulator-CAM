@@ -4,3 +4,4 @@ visualizer/__pycache__
 .vscode/launch.json
 .gitignore
 yolov5s.pt
+classes.png

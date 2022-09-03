@@ -239,16 +239,8 @@ def get_offset_list(window_res, image_res):
 
 def surface_to_cam(surface, cam_method, use_cuda=True,
                    target_classes: List[torch.nn.Module] = None):
+    
     array = pygame.surfarray.pixels3d(surface)
-    # if parameters.debug:
-    #     try:
-    #         # to plot the image with the correct orientation
-    #         plt.imshow(array.transpose(1, 0, 2))
-    #         plt.show()
-            # input('showing the input tensor, press enter to continue')
-    #     except Exception as e:
-    #         print(f'plt.imshow(array.permute(1, 2, 0)) failed:\n{e}')
-            
     input_tensor = preprocess_image(array, use_cuda, False)
     
     if parameters.debug:

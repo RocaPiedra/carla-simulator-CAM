@@ -1,5 +1,5 @@
 import os
-
+debug = False # Shows the PIL images during the preprocessing steps
 visualize = False # prints information during execution of layers and steps to debug
 sendToGPU = True
 paused = False
@@ -13,5 +13,6 @@ if os.name == 'nt':
 else:
     unreal_engine_path = '/opt/carla-simulator/CarlaUE4.sh'
 WHITE = (255, 255, 255)
+BLACK = (0,0,0)
 BUTTON_COLOR = (169,169,169)
 imagenet_relevant_classes = [444,479,475,757,468,569,575,670,671,705,751,817,829,864,919,920,671]

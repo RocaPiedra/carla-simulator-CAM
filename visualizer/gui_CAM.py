@@ -21,8 +21,6 @@ from torchvision import transforms
 from torchvision.models import resnet18, resnet34, resnet50, alexnet, vgg11, vgg19
 import parameters
 
-from parameters import BUTTON_COLOR, WHITE
-
 import roc_functions
 import time
 import gc
@@ -42,8 +40,8 @@ class gui_CAM:
         self.cam_name = None
         self.method_name = None
         self.model_name = 'ResNet'
-        self.CAM_BUTTON_COLOR = BUTTON_COLOR
-        self.MODEL_BUTTON_COLOR = BUTTON_COLOR
+        self.CAM_BUTTON_COLOR = parameters.BUTTON_COLOR
+        self.MODEL_BUTTON_COLOR = parameters.BUTTON_COLOR
         self.click = False
         self.class_list = roc_functions.get_imagenet_dictionary(url=None) 
         self.cam = None
@@ -70,40 +68,43 @@ class gui_CAM:
         positions = []
         for pos in range(num_options):
             positions.append([x+pos*dx, y+pos*dy])
+        
+        draw_text('CAM Technique Menu', self.font, (255, 255, 255), self.display, 20, 20)
+        
+        
+        # To delimit the size of the button, in the future use value related to window res
+        w, h = pygame.display.get_surface().get_size()
+        button_width = 300
+        button_height = 40
+        
+        grad_button = pygame.Rect(positions[0][0], positions[0][1], button_width, button_height)
+        score_button = pygame.Rect(positions[4][0], positions[4][1], button_width, button_height)
+        xgradcam_button = pygame.Rect(positions[2][0], positions[2][1], button_width, button_height)
+        ablation_button = pygame.Rect(positions[5][0], positions[5][1], button_width, button_height)
+        eigen_button = pygame.Rect(positions[6][0], positions[6][1], button_width, button_height)
+        fullgrad_button = pygame.Rect(positions[3][0], positions[3][1], button_width, button_height)
+        gradcampp_button = pygame.Rect(positions[1][0], positions[1][1], button_width, button_height)
 
+        pygame.draw.rect(self.display, self.CAM_BUTTON_COLOR, grad_button)
+        draw_text('GradCAM', self.font, (255, 255, 255), self.display, positions[0][0]+10, positions[0][1]+button_height-20)
+        pygame.draw.rect(self.display, self.CAM_BUTTON_COLOR, score_button)
+        draw_text('ScoreCAM', self.font, (255, 255, 255), self.display, positions[4][0]+10, positions[4][1]+button_height-20)
+        pygame.draw.rect(self.display, self.CAM_BUTTON_COLOR, xgradcam_button)
+        draw_text('XGradCAM', self.font, (255, 255, 255), self.display, positions[2][0]+10, positions[2][1]+button_height-20)
+        pygame.draw.rect(self.display, self.CAM_BUTTON_COLOR, ablation_button)
+        draw_text('AblationCAM', self.font, (255, 255, 255), self.display, positions[5][0]+10, positions[5][1]+button_height-20)
+        pygame.draw.rect(self.display, self.CAM_BUTTON_COLOR, eigen_button)
+        draw_text('EigenCAM', self.font, (255, 255, 255), self.display, positions[6][0]+10, positions[6][1]+button_height-20)
+        pygame.draw.rect(self.display, self.CAM_BUTTON_COLOR, fullgrad_button)
+        draw_text('FullGrad', self.font, (255, 255, 255), self.display, positions[3][0]+10, positions[3][1]+button_height-20)
+        pygame.draw.rect(self.display, self.CAM_BUTTON_COLOR, gradcampp_button)
+        draw_text('GradCAM++', self.font, (255, 255, 255), self.display, positions[1][0]+10, positions[1][1]+button_height-20)
+        time.sleep(1)
+        pygame.display.update()
+        time.sleep(1)   
         while method_selection:
             
-            draw_text('Model gui_CAM', self.font, (255, 255, 255), self.display, 20, 20)
-            
             mx, my = pygame.mouse.get_pos()
-            # To delimit the size of the button, in the future use value related to window res
-            w, h = pygame.display.get_surface().get_size()
-            button_width = 300
-            button_height = 40
-            
-            grad_button = pygame.Rect(positions[0][0], positions[0][1], button_width, button_height)
-            score_button = pygame.Rect(positions[4][0], positions[4][1], button_width, button_height)
-            xgradcam_button = pygame.Rect(positions[2][0], positions[2][1], button_width, button_height)
-            ablation_button = pygame.Rect(positions[5][0], positions[5][1], button_width, button_height)
-            eigen_button = pygame.Rect(positions[6][0], positions[6][1], button_width, button_height)
-            fullgrad_button = pygame.Rect(positions[3][0], positions[3][1], button_width, button_height)
-            gradcampp_button = pygame.Rect(positions[1][0], positions[1][1], button_width, button_height)
-
-            pygame.draw.rect(self.display, self.CAM_BUTTON_COLOR, grad_button)
-            draw_text('GradCAM', self.font, (255, 255, 255), self.display, positions[0][0], positions[0][1]+button_height-15)
-            pygame.draw.rect(self.display, self.CAM_BUTTON_COLOR, score_button)
-            draw_text('ScoreCAM', self.font, (255, 255, 255), self.display, positions[4][0], positions[4][1]+button_height-15)
-            pygame.draw.rect(self.display, self.CAM_BUTTON_COLOR, xgradcam_button)
-            draw_text('XGradCAM', self.font, (255, 255, 255), self.display, positions[2][0], positions[2][1]+button_height-15)
-            pygame.draw.rect(self.display, self.CAM_BUTTON_COLOR, ablation_button)
-            draw_text('AblationCAM', self.font, (255, 255, 255), self.display, positions[5][0], positions[5][1]+button_height-15)
-            pygame.draw.rect(self.display, self.CAM_BUTTON_COLOR, eigen_button)
-            draw_text('EigenCAM', self.font, (255, 255, 255), self.display, positions[6][0], positions[6][1]+button_height-15)
-            pygame.draw.rect(self.display, self.CAM_BUTTON_COLOR, fullgrad_button)
-            draw_text('FullGrad', self.font, (255, 255, 255), self.display, positions[3][0], positions[3][1]+button_height-15)
-            pygame.draw.rect(self.display, self.CAM_BUTTON_COLOR, gradcampp_button)
-            draw_text('GradCAM++', self.font, (255, 255, 255), self.display, positions[1][0], positions[1][1]+button_height-15)
-
             if grad_button.collidepoint((mx, my)):
                 if self.click and self.model_gradient_compatible:
                     method_selection = False
@@ -158,7 +159,6 @@ class gui_CAM:
                 if event.type == MOUSEBUTTONDOWN:
                     if event.button == 1:
                         self.click = True
-            pygame.display.update()
         if second_method is False:
             self.method_name = method_name
         return method_name    
@@ -222,26 +222,6 @@ class gui_CAM:
             return cam_method
         else:
             self.select_cam()
-        
-    # Compare methods while managing GPU memory usage to avoid errors
-    def compare_new_method(self, img):
-        new_method_name = self.select_cam(second_method = True)
-        old_method_name = self.method_name
-        new_cam_method = self.load_cam(method_name = new_method_name)
-        if self.filtered_cam:
-            class_name, class_score = self.run_cam_filtered(img, new_cam_method, self.compare_location, new_method_name)
-        else:
-            class_name, class_score = self.run_cam(img, new_cam_method, self.compare_location, new_method_name)
-        print(f"compared {old_method_name} to {new_method_name} \
-            -> finished with output {class_name}|{class_score}%")
-        time.sleep(10)
-        # After execution it is necessary to free memory by deleting the second method
-        del new_cam_method
-        gc.collect()
-        torch.cuda.empty_cache()
-        # Reload initial method, deleted in load cam if to free GPU memory
-        self.cam = self.load_cam(False, method_name = old_method_name)
-        return class_name, class_score    
     
     
     def select_target_layer(self):
@@ -279,7 +259,7 @@ class gui_CAM:
 
         while model_selection:
             
-            draw_text('model gui_CAM', self.font, (255, 255, 255), self.display, 20, 20)
+            draw_text('Model Menu', self.font, (255, 255, 255), self.display, 20, 20)
             
             mx, my = pygame.mouse.get_pos()
             # To delimit the size of the button, in the future use value related to window res
@@ -292,15 +272,17 @@ class gui_CAM:
             third_button = pygame.Rect(positions[2][0], positions[2][1], button_width, button_height)
             fourth_button = pygame.Rect(positions[3][0], positions[3][1], button_width, button_height)
 
-            pygame.draw.rect(self.display, BUTTON_COLOR,  resnet_button)
-            draw_text('ResNet', self.font, (255, 255, 255), self.display, positions[0][0], positions[0][1]+button_height-15)
-            pygame.draw.rect(self.display, BUTTON_COLOR, alexnet_button)
-            draw_text('Alexnet', self.font, (255, 255, 255), self.display, positions[1][0], positions[1][1]+button_height-15)
-            pygame.draw.rect(self.display, BUTTON_COLOR, third_button)
-            draw_text('VGG', self.font, (255, 255, 255), self.display, positions[2][0], positions[2][1]+button_height-15)
-            pygame.draw.rect(self.display, BUTTON_COLOR, fourth_button)
-            draw_text('YOLOv5', self.font, (255, 255, 255), self.display, positions[3][0], positions[3][1]+button_height-15)
-
+            pygame.draw.rect(self.display, self.MODEL_BUTTON_COLOR,  resnet_button)
+            draw_text('ResNet', self.font, (255, 255, 255), self.display, positions[0][0]+10, positions[0][1]+button_height-20)
+            pygame.draw.rect(self.display, self.MODEL_BUTTON_COLOR, alexnet_button)
+            draw_text('Alexnet', self.font, (255, 255, 255), self.display, positions[1][0]+10, positions[1][1]+button_height-20)
+            pygame.draw.rect(self.display, self.MODEL_BUTTON_COLOR, third_button)
+            draw_text('VGG', self.font, (255, 255, 255), self.display, positions[2][0]+10, positions[2][1]+button_height-20)
+            pygame.draw.rect(self.display, self.MODEL_BUTTON_COLOR, fourth_button)
+            draw_text('YOLOv5', self.font, (255, 255, 255), self.display, positions[3][0]+10, positions[3][1]+button_height-20)
+            
+            pygame.display.update()
+            
             if resnet_button.collidepoint((mx, my)):
                 if self.click:
                     if self.model.__class__.__name__ != 'ResNet':
@@ -509,12 +491,12 @@ class gui_CAM:
         t0 = time.time()
         # get the top detected classes to select a target later:
         top_detected_classes, top_detected_percentages = self.get_top_detections(img,  probabilities = None, num_detections = 10)
-        target_class = roc_functions.check_relevant_classes(top_detected_classes, self.class_list)
-        index = np.where(top_detected_classes == target_class)
+        self.target_class = roc_functions.check_relevant_classes(top_detected_classes, self.class_list)
+        index = np.where(top_detected_classes == self.target_class)
         target_score_percent = top_detected_percentages[int(index[0])]
         # get the cam heat map in a pygame image
         surface, inf_outputs, _ =  roc_functions.surface_to_cam(
-            img, cam_method, self.use_cuda, [ClassifierOutputTarget(target_class)])
+            img, cam_method, self.use_cuda, [ClassifierOutputTarget(self.target_class)])
         print('time needed for visualization method creation :', time.time()-t0)
         
         t1 = time.time()
@@ -523,7 +505,7 @@ class gui_CAM:
         print('time needed for probabilities calculation:', time.time()-t1)
         
         print(f'In filtered CAM:\n',
-              f'Class Filtered: {self.class_list[target_class]} | Class from CAM: {class_name}\n',
+              f'Class Filtered: {self.class_list[self.target_class]} | Class from CAM: {class_name}\n',
               f'Score Filtered: {target_score_percent} | Score from CAM: {class_percentage}\n',)
         
         if selected_location is None:
@@ -531,11 +513,11 @@ class gui_CAM:
             self.render_cam()
             # self.render_text()
         else:
-            score_string = f"Class detected: {self.class_list[target_class]} with score: {target_score_percent}%"
+            score_string = f"Class detected: {self.class_list[self.target_class]} with score: {target_score_percent}%"
             self.render_cam(selected_location, surface, score_string, new_method_name)
             # self.render_text()
         
-        return self.class_list[target_class], target_score_percent
+        return self.class_list[self.target_class], target_score_percent
         
         
     def run_cam(self, img, cam_method = None, selected_location = None, new_method_name = None):
@@ -560,14 +542,32 @@ class gui_CAM:
         if selected_location is None:
             self.surface = surface
             self.render_cam()
-            # self.render_text()
         else:
             score_string = f"Class detected: {class_name} with score: {class_percentage}%"
             self.render_cam(selected_location, surface, score_string, new_method_name)
-            # self.render_text()
         
         return class_name, class_percentage
-
+        
+    # Compare methods while managing GPU memory usage to avoid errors
+    def compare_new_method(self, img):
+        new_method_name = self.select_cam(second_method = True)
+        old_method_name = self.method_name
+        new_cam_method = self.load_cam(method_name = new_method_name)
+        if self.filtered_cam:
+            class_name, class_score = self.run_cam_filtered(img, new_cam_method, self.compare_location, new_method_name)
+        else:
+            class_name, class_score = self.run_cam(img, new_cam_method, self.compare_location, new_method_name)
+        print(f"compared {old_method_name} to {new_method_name} \
+            -> finished with output {class_name}|{class_score}%")
+        time.sleep(10)
+        # After execution it is necessary to free memory by deleting the second method
+        del new_cam_method
+        gc.collect()
+        torch.cuda.empty_cache()
+        # Reload initial method, deleted in load cam if to free GPU memory
+        self.cam = self.load_cam(False, method_name = old_method_name)
+        return class_name, class_score    
+    
     
     def render_cam(self, selected_location = None, surface_to_plot = None, second_classification = None, new_method_name = None):
         if surface_to_plot is None:
@@ -680,6 +680,9 @@ class gui_CAM:
             elif event.key == pygame.K_m:
                 if not parameters.paused:
                     cam_name = self.select_cam()
+                    
+                    roc_functions.blip_image_centered(self.display, input_image)
+                    
                     if cam_name != self.cam_name:
                         self.cam = self.load_cam()
                         self.cam_name = cam_name
@@ -699,6 +702,9 @@ class gui_CAM:
             elif event.key == pygame.K_n:
                 if not parameters.paused:
                     self.select_model()
+                    
+                    roc_functions.blip_image_centered(self.display, input_image)
+                    
                     return False
             
             elif event.key == pygame.K_t:
@@ -712,7 +718,7 @@ class gui_CAM:
                 
         if parameters.paused:
             self.render_cam(offset)
-            pygame.display.update()              
+            pygame.display.update()     
                             
 if __name__ == '__main__':
     pygame.init()
@@ -723,7 +729,6 @@ if __name__ == '__main__':
     # file_path = 'utils/test_images/carla_input/1.png'
     path = '/home/roc/imagenet-sample-images'
     image_name = random.choice(os.listdir(path))
-    print(image_name)
     file_path = os.path.join(path, image_name)
     sample_image = pygame.image.load(file_path)
     display.blit(sample_image, [0,0])
@@ -731,5 +736,12 @@ if __name__ == '__main__':
     # input("enter to pass loaded image")
     while not call_exit:
         for event in pygame.event.get():
-            
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    image_name = random.choice(os.listdir(path))
+                    file_path = os.path.join(path, image_name)
+                    sample_image = pygame.image.load(file_path)
+                    parameters.paused = False
+                    roc_functions.blip_image_centered(display, sample_image)
+                    
             call_exit = test_menu.run_menu_no_loop(event, call_exit, sample_image, [0,0])
