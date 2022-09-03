@@ -26,9 +26,10 @@ import time
 import gc
 
 class gui_CAM:
-    def __init__(self, display, use_cuda = True):
+    def __init__(self, display, use_cuda = True, display_manager = None):
         self.model = resnet50(pretrained=True)
         self.model_gradient_compatible = True
+        self.display_manager = display_manager
         self.display = display
         try:
             roc_functions.blip_logo(self.display, parameters.gui_cam_logo)
@@ -71,7 +72,6 @@ class gui_CAM:
         
         draw_text('CAM Technique Menu', self.font, (255, 255, 255), self.display, 20, 20)
         
-        
         # To delimit the size of the button, in the future use value related to window res
         w, h = pygame.display.get_surface().get_size()
         button_width = 300
@@ -99,9 +99,9 @@ class gui_CAM:
         draw_text('FullGrad', self.font, (255, 255, 255), self.display, positions[3][0]+10, positions[3][1]+button_height-20)
         pygame.draw.rect(self.display, self.CAM_BUTTON_COLOR, gradcampp_button)
         draw_text('GradCAM++', self.font, (255, 255, 255), self.display, positions[1][0]+10, positions[1][1]+button_height-20)
-        time.sleep(1)
+        
         pygame.display.update()
-        time.sleep(1)   
+        
         while method_selection:
             
             mx, my = pygame.mouse.get_pos()
@@ -256,132 +256,81 @@ class gui_CAM:
         positions = []
         for pos in range(num_options):
             positions.append([x+pos*dx, y+pos*dy])
+        
+        draw_text('Model Menu', self.font, (255, 255, 255), self.display, 20, 20)
+        
+        # To delimit the size of the button, in the future use value related to window res
+        w, h = pygame.display.get_surface().get_size()
+        button_width = 300
+        button_height = 40
+        
+        resnet_button = pygame.Rect(positions[0][0], positions[0][1], button_width, button_height)
+        alexnet_button = pygame.Rect(positions[1][0], positions[1][1], button_width, button_height)
+        third_button = pygame.Rect(positions[2][0], positions[2][1], button_width, button_height)
+        fourth_button = pygame.Rect(positions[3][0], positions[3][1], button_width, button_height)
 
+        pygame.draw.rect(self.display, self.MODEL_BUTTON_COLOR,  resnet_button)
+        draw_text('ResNet', self.font, (255, 255, 255), self.display, positions[0][0]+10, positions[0][1]+button_height-20)
+        pygame.draw.rect(self.display, self.MODEL_BUTTON_COLOR, alexnet_button)
+        draw_text('Alexnet', self.font, (255, 255, 255), self.display, positions[1][0]+10, positions[1][1]+button_height-20)
+        pygame.draw.rect(self.display, self.MODEL_BUTTON_COLOR, third_button)
+        draw_text('VGG', self.font, (255, 255, 255), self.display, positions[2][0]+10, positions[2][1]+button_height-20)
+        pygame.draw.rect(self.display, self.MODEL_BUTTON_COLOR, fourth_button)
+        draw_text('YOLOv5', self.font, (255, 255, 255), self.display, positions[3][0]+10, positions[3][1]+button_height-20)
+        
+        pygame.display.update()
+        
         while model_selection:
             
-            draw_text('Model Menu', self.font, (255, 255, 255), self.display, 20, 20)
-            
-            mx, my = pygame.mouse.get_pos()
-            # To delimit the size of the button, in the future use value related to window res
-            w, h = pygame.display.get_surface().get_size()
-            button_width = 300
-            button_height = 40
-            
-            resnet_button = pygame.Rect(positions[0][0], positions[0][1], button_width, button_height)
-            alexnet_button = pygame.Rect(positions[1][0], positions[1][1], button_width, button_height)
-            third_button = pygame.Rect(positions[2][0], positions[2][1], button_width, button_height)
-            fourth_button = pygame.Rect(positions[3][0], positions[3][1], button_width, button_height)
-
-            pygame.draw.rect(self.display, self.MODEL_BUTTON_COLOR,  resnet_button)
-            draw_text('ResNet', self.font, (255, 255, 255), self.display, positions[0][0]+10, positions[0][1]+button_height-20)
-            pygame.draw.rect(self.display, self.MODEL_BUTTON_COLOR, alexnet_button)
-            draw_text('Alexnet', self.font, (255, 255, 255), self.display, positions[1][0]+10, positions[1][1]+button_height-20)
-            pygame.draw.rect(self.display, self.MODEL_BUTTON_COLOR, third_button)
-            draw_text('VGG', self.font, (255, 255, 255), self.display, positions[2][0]+10, positions[2][1]+button_height-20)
-            pygame.draw.rect(self.display, self.MODEL_BUTTON_COLOR, fourth_button)
-            draw_text('YOLOv5', self.font, (255, 255, 255), self.display, positions[3][0]+10, positions[3][1]+button_height-20)
-            
-            pygame.display.update()
-            
+            mx, my = pygame.mouse.get_pos()    
             if resnet_button.collidepoint((mx, my)):
                 if self.click:
                     if self.model.__class__.__name__ != 'ResNet':
                         self.clear_memory()
                         self.model = resnet50(pretrained=True)
-                        self.select_target_layer()
-                        if self.cam:
-                            try:
-                                print('Reloading CAM method with new Model')
-                                self.cam = self.load_cam()
-                            except:
-                                print('Some error ocurred, try loading cam to CPU')
-                                self.cam = self.load_cam(True)
-                        else:
-                            print('CAM method has not been selected, press M to choose one')
-                                
                         model_selection = False
                         model_name = 'ResNet'
                         self.model_gradient_compatible = True
-                        if self.use_cuda:
-                            self.model.to('cuda')
-                            print(f"Selected model {model_name} is cuda ready")
+                        
                     else:
-                        print(f'Model selected -> {self.model.__class__.__name__} was already loaded')
+                        print(f'Model selected -> {model_name} was already loaded')
             
             if alexnet_button.collidepoint((mx, my)):
                 if self.click:
                     if self.model.__class__.__name__ != 'Alexnet':
                         self.clear_memory()
                         self.model = alexnet(pretrained=True) 
-                        self.select_target_layer()
-                        if self.cam:
-                            try:
-                                print('Reloading CAM method with new Model')
-                                self.cam = self.load_cam()
-                            except:
-                                print('Some error ocurred, try loading cam to CPU')
-                                self.cam = self.load_cam(True)
-                        else:
-                            print('CAM method has not been selected, press M to choose one')
-                            
                         model_selection = False
                         model_name = 'Alexnet'
                         self.model_gradient_compatible = True
-                        if self.use_cuda:
-                            self.model.to('cuda')
-                            print(f"Selected model {model_name} is cuda ready")
+                        
                     else:
-                        print(f'Model selected -> {self.model.__class__.__name__} was already loaded')
+                        print(f'Model selected -> {model_name} was already loaded')
             
             if third_button.collidepoint((mx, my)):
                 if self.click:
                     if self.model.__class__.__name__ != 'VGG':
                         self.clear_memory()
                         self.model = torch.hub.load('pytorch/vision:v0.10.0', 'vgg11', pretrained=True)
-                        self.select_target_layer()
-                        if self.cam:
-                            try:
-                                print('Reloading CAM method with new Model')
-                                self.cam = self.load_cam()
-                            except:
-                                print('Some error ocurred, try loading cam to CPU')
-                                self.cam = self.load_cam(True)
-                        else:
-                            print('CAM method has not been selected, press M to choose one')
-                                
                         model_selection = False
                         model_name = 'VGG'
                         self.model_gradient_compatible = True
-                        if self.use_cuda:
-                            self.model.to('cuda')
-                            print(f"Selected model {model_name} is cuda ready")
+                        
                     else:
-                        print(f'Model selected -> {self.model.__class__.__name__} was already loaded')
+                        print(f'Model selected -> {model_name} was already loaded')
                     
             if fourth_button.collidepoint((mx, my)):
                 if self.click:
                     # not sure why, yolov5 returns as name AutoShape.
                     if self.model.__class__.__name__ != 'AutoShape':
                         self.clear_memory()
-                        self.model =  torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
-                        self.select_target_layer()
-                        if self.cam:
-                            try:
-                                print('Reloading CAM method with new Model')
-                                self.cam = self.load_cam()
-                            except:
-                                print('Some error ocurred, try loading cam to CPU')
-                                self.cam = self.load_cam(True)
-                        else:
-                            print('CAM method has not been selected, press M to choose one')        
+                        self.model =  torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)        
                         model_selection = False
                         model_name = 'YOLOv5'
                         self.model_gradient_compatible = False
-                        if self.use_cuda:
-                            self.model.to('cuda')
-                            print(f"Selected model {model_name} is cuda ready")
+                        
                     else:
-                        print(f'Model selected -> YOLOv5 was already loaded')
+                        print(f'Model selected -> {model_name} was already loaded')
             
             self.click = False
             for event in pygame.event.get():
@@ -397,7 +346,31 @@ class gui_CAM:
                         self.click = True
                         
             pygame.display.update()
+            
         self.model_name = model_name
+        self.select_target_layer()
+        
+        if self.cam:
+            try:
+                print('Reloading CAM method with new Model')
+                self.cam = self.load_cam()
+            except:
+                print('Some error ocurred, try loading cam to CPU')
+                self.cam = self.load_cam(True)
+        elif self.cam_name:
+            try:
+                print('Reloading CAM method with new Model')
+                self.cam = self.load_cam(False, self.cam_name)
+            except:
+                print('Some error ocurred, try loading cam to CPU')
+                self.cam = self.load_cam(True, self.cam_name)
+        else:
+            print('CAM method has not been selected, press M to choose one')
+                
+        if self.use_cuda:
+            self.model.to('cuda')
+            print(f"Selected model {model_name} is cuda ready")
+
         return model_name
 
     # img is a surface 
@@ -429,38 +402,46 @@ class gui_CAM:
     #This option obtains the inference results from outside the cam method
     def get_detection(self, img):
         output = self.run_model(img)
-        probabilities = torch.nn.functional.softmax(output[0], dim=0)
-        probabilities = probabilities.to('cpu')
-        target_class = np.argmax(probabilities.detach().numpy())
-        class_name = self.class_list[target_class]
-        class_score = probabilities[target_class]
-        if parameters.debug:
-            print(f'target class is {target_class}')
-            print(f"SINGLE DETECTION: {class_name} || {class_score*100}% ")
-            
-        return class_name, class_score, probabilities
+        
+        if output.size() == torch.Size([1, 1000]):
+            probabilities = torch.nn.functional.softmax(output[0], dim=0)
+            probabilities = probabilities.to('cpu')
+            target_class = np.argmax(probabilities.detach().numpy())
+            class_name = self.class_list[target_class]
+            class_score = probabilities[target_class]
+            if parameters.debug:
+                print(f'target class is {target_class}')
+                print(f"SINGLE DETECTION: {class_name} || {class_score*100}% ")
+                
+            return class_name, class_score, probabilities
+        else:
+            print(f'Not ImageNet:{output.size()}')
     
     
     def get_top_detections(self, input_image = None, probabilities = None, num_detections = 5):
         if probabilities is None:
             if input_image is not None:
-                _,_,probabilities = self.get_detection(input_image)
-                probabilities = probabilities.to('cpu')
-                probabilities = probabilities.cpu().detach().numpy()
+                try:
+                    _,_,probabilities = self.get_detection(input_image)
+                    probabilities = probabilities.to('cpu')
+                    probabilities = probabilities.cpu().detach().numpy()
+                    top_locations = np.argpartition(probabilities, -num_detections)[-num_detections:]
+                    ordered_locations = top_locations[np.argsort((-probabilities)[top_locations])]
+                    np.flip(ordered_locations)
+                    print(f'Top {num_detections} ordered results:')
+                    ordered_score_percentages = []
+                    for pos in ordered_locations:
+                        class_name, class_percentage = self.get_class_and_score(probabilities, pos)
+                        print(f"Class detected: {class_name} with score: {class_percentage}%")
+                        ordered_score_percentages.append(class_percentage)
+                    return ordered_locations, ordered_score_percentages
+                
+                except Exception as e:
+                    print(
+                        f'The ouput type was not expected:\n{e}')
             else:
                 print('inputs missing')
                 return None
-            
-        top_locations = np.argpartition(probabilities, -num_detections)[-num_detections:]
-        ordered_locations = top_locations[np.argsort((-probabilities)[top_locations])]
-        np.flip(ordered_locations)
-        print(f'Top {num_detections} ordered results:')
-        ordered_score_percentages = []
-        for pos in ordered_locations:
-            class_name, class_percentage = self.get_class_and_score(probabilities, pos)
-            print(f"Class detected: {class_name} with score: {class_percentage}%")
-            ordered_score_percentages.append(class_percentage)
-        return ordered_locations, ordered_score_percentages
     
     
     def prob_calc_efficient(self, output):
@@ -553,6 +534,8 @@ class gui_CAM:
         new_method_name = self.select_cam(second_method = True)
         old_method_name = self.method_name
         new_cam_method = self.load_cam(method_name = new_method_name)
+        if self.display_manager:
+            self.display_manager.render()
         if self.filtered_cam:
             class_name, class_score = self.run_cam_filtered(img, new_cam_method, self.compare_location, new_method_name)
         else:
@@ -570,12 +553,11 @@ class gui_CAM:
     
     
     def render_cam(self, selected_location = None, surface_to_plot = None, second_classification = None, new_method_name = None):
-        if surface_to_plot is None:
+        if self.surface:
             self.display.blit(self.surface, self.main_location)
-            pygame.display.update() 
             self.text_render()
 
-        elif selected_location == self.compare_location:
+        if selected_location == self.compare_location:
             print('plotting the second CAM output...')
             self.display.blit(surface_to_plot, selected_location)
             pygame.display.update()
@@ -681,7 +663,10 @@ class gui_CAM:
                 if not parameters.paused:
                     cam_name = self.select_cam()
                     
-                    roc_functions.blip_image_centered(self.display, input_image)
+                    if self.display_manager:
+                        self.display_manager.render()
+                    else:
+                        roc_functions.blip_image_centered(self.display, input_image)
                     
                     if cam_name != self.cam_name:
                         self.cam = self.load_cam()
@@ -703,7 +688,10 @@ class gui_CAM:
                 if not parameters.paused:
                     self.select_model()
                     
-                    roc_functions.blip_image_centered(self.display, input_image)
+                    if self.display_manager:
+                        self.display_manager.render()
+                    else:
+                        roc_functions.blip_image_centered(self.display, input_image)
                     
                     return False
             

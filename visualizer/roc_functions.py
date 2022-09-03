@@ -260,8 +260,9 @@ def surface_to_cam(surface, cam_method, use_cuda=True,
         input_tensor = input_tensor.to('cuda')
         cam_method.model.to('cuda')
     else:
-        input_tensor = input_tensor.to('cpu')
-        cam_method.model.to('cpu')
+        input_tensor = input_tensor.cpu()
+        cam_method.model.cpu() #does not work
+        cam_method.cuda = False
     
     normalized_image = np.float32(array/255)
     
@@ -280,10 +281,11 @@ def surface_to_cam(surface, cam_method, use_cuda=True,
     except Exception as e:
         print(f'Exception:\n{e}')
         print('Exception handled for CAM computation',
-              f'current location failed Cuda? -> {input_tensor.is_cuda}',
+              f'is current location Cuda? -> {input_tensor.is_cuda}',
               '| try CPU execution')
-        input_tensor = input_tensor.to('cpu')
-        cam_method.model.to('cpu')
+        input_tensor = input_tensor.cpu()
+        cam_method.model.cpu() #does not work
+        cam_method.cuda = False
         try:
             # you can pass the class targets to the cam method if desired to check a target
             grayscale_cam, inf_outputs, cam_targets = cam_method(input_tensor, target_classes)

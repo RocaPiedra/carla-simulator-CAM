@@ -360,7 +360,7 @@ def run_simulation(args, client):
                       vehicle, {'channels' : '64', 'range' : '100', 'points_per_second': '100000', 'rotation_frequency': '20'}, display_pos=[1, 2])
 
         #Lastly, instanciate the gui_CAM class to manage the app's options
-        class_menu = gui_CAM(display_manager.display, use_cuda)
+        class_menu = gui_CAM(display_manager.display, use_cuda, display_manager)
 
         #Simulation loop --> to be changed with the call to run simulation from the class gui_CAM
         call_exit = False
@@ -410,10 +410,7 @@ def run_simulation(args, client):
                 break
     except Exception as e:
         print(f'Is the simulation running?\n{e}')
-        print('****\ntraceback.format_exc():\n****',traceback.format_exc())
-        # exc_type, exc_obj, exc_tb = sys.exc_info()
-        # fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-        # print(exc_type, fname, exc_tb.tb_lineno)
+        print('********\n',traceback.format_exc())
         
     finally:
         if display_manager:
@@ -426,7 +423,6 @@ def run_simulation(args, client):
             world.apply_settings(original_settings)
         else:
             print('world object does not exist, connection with client was not established')
-
 
 
 def main():
