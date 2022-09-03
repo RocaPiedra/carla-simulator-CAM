@@ -1,4 +1,7 @@
 """
+Visualisation API to produce CAM overlayed images
+
+Offers a GUI through Pygame to facilitate the evaluations
 
 @author: Pablo Roca - github.com/RocaPiedra
 """
@@ -65,17 +68,19 @@ class gui_CAM:
         y = 100
         dx = 0
         dy = 100
+        w, h = pygame.display.get_surface().get_size()
+        button_width = 300
+        button_height = 40
         num_options = 7
         positions = []
+                
         for pos in range(num_options):
+            
             positions.append([x+pos*dx, y+pos*dy])
         
         draw_text('CAM Technique Menu', self.font, (255, 255, 255), self.display, 20, 20)
         
         # To delimit the size of the button, in the future use value related to window res
-        w, h = pygame.display.get_surface().get_size()
-        button_width = 300
-        button_height = 40
         
         grad_button = pygame.Rect(positions[0][0], positions[0][1], button_width, button_height)
         score_button = pygame.Rect(positions[4][0], positions[4][1], button_width, button_height)
