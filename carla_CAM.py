@@ -296,10 +296,7 @@ class SensorManager:
             return True
 
 
-def run_simulation(args, client):
-    """This function performed one test run using the args parameters
-    and connecting to the carla client passed.
-    """
+def run_carla_CAM(args, client):
 
     display_manager = None
     vehicle = None
@@ -358,7 +355,8 @@ def run_simulation(args, client):
 
         #Lastly, instanciate the gui_CAM class to manage the app's options
         class_menu = gui_CAM(display_manager.display, use_cuda, display_manager)
-
+        weather_manager = roc_functions.WeatherManager(world)
+        weather_manager.list_weather_presets()
         #Simulation loop --> to be changed with the call to run simulation from the class gui_CAM
         call_exit = False
         time_init_sim = timer.time()
@@ -401,6 +399,10 @@ def run_simulation(args, client):
                         print("Right Mouse key was clicked")
                     if mouse_presses[2]:
                         print("Center Mouse key was clicked")
+                        
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_w:
+                        weather_manager.next_weather()
                         
             if call_exit:
                 print("called exit, finishing execution")
@@ -472,13 +474,13 @@ def main():
         client = carla.Client(args.host, args.port)
         client.set_timeout(5.0)
 
-        run_simulation(args, client)
+        run_carla_CAM(args, client)
 
     except (RuntimeError, TypeError, NameError):
         _, generate_traffic = roc_functions.launch_carla_simulator_locally()
         client = carla.Client(args.host, args.port)
         client.set_timeout(15.0)
-        run_simulation(args, client)
+        run_carla_CAM(args, client)
 
     except KeyboardInterrupt:
         print('\nCancelled by user. Bye!')

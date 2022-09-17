@@ -15,6 +15,9 @@ from pytorch_grad_cam.utils.image import show_cam_on_image
 from pytorch_grad_cam import GradCAM, ScoreCAM, GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM, FullGrad
 sys.path.append('../visualizer')
 
+import carla
+import re
+
 import torch
 from torch.autograd import Variable
 from torchvision import models
@@ -431,6 +434,57 @@ def method_menu(font, surface, model, target_layers):
         pygame.display.update()
 
     return cam_method, method_name, offsetpos
+
+class WeatherManager():
+    def __init__(self, world):
+        self.world = world
+        self._weather_presets = find_weather_presets()
+        self._weather_index = 0
+
+    def list_weather_presets(self):
+        print('Available weather presets:')
+        for preset in self._weather_presets:
+            print(preset[1])
+            
+    def next_weather(self, reverse=False):
+        """Get next weather setting"""
+        self._weather_index += -1 if reverse else 1
+        self._weather_index %= len(self._weather_presets)
+        preset = self._weather_presets[self._weather_index]
+        print('Weather: %s' % preset[1])
+        self.world.set_weather(preset[0])
+        
+
+def find_weather_presets():
+    """Method to find weather presets"""
+    rgx = re.compile('.+?(?:(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|$)')
+    def name(x): return ' '.join(m.group(0) for m in rgx.finditer(x))
+    presets = [x for x in dir(carla.WeatherParameters) if re.match('[A-Z].+', x)]
+    return [(getattr(carla.WeatherParameters, x), name(x)) for x in presets]
+
+
+def menu_overlay(screen_width, screen_height, num_buttons, button_width, button_height):
+    num_buttons = 7
+    positions = []
+    x = 100
+    y = 100
+    dx = 0
+    dy = 100
+    while x+num_buttons*dx+button_width > screen_width:
+        if x>100:
+            x-=1
+        if dx>=button_width:
+            dx-=1
+    while y+num_buttons*dy+button_height > screen_height:
+        if y>20:
+            y-=1
+        if dy>=button_height:
+            dy-=1
+            
+    for pos in range(num_buttons):   
+        positions.append([x+pos*dx, y+pos*dy])
+        
+    return positions
 
 
 def check_pytorch_cuda_memory():
