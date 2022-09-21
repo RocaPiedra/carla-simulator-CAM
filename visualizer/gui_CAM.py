@@ -417,7 +417,7 @@ class gui_CAM:
                 print(f'target class is {target_class}')
                 print(f"SINGLE DETECTION: {class_name} || {class_score*100}% ")
                 
-        return class_name, class_score.cpu().detach().numpy(), probabilities
+            return class_name, class_score.cpu().detach().numpy(), probabilities
         else:
             print(f'Not ImageNet:{output.size()}')
 
