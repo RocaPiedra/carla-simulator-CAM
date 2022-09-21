@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 
-# Copyright (c) 2020 Computer Vision Center (CVC) at the Universitat Autonoma de
-# Barcelona (UAB).
-#
 # This work is licensed under the terms of the MIT license.
 # For a copy, see <https://opensource.org/licenses/MIT>.
 
@@ -299,10 +296,7 @@ class SensorManager:
             return True
 
 
-def run_simulation(args, client):
-    """This function performed one test run using the args parameters
-    and connecting to the carla client passed.
-    """
+def run_carla_CAM(args, client):
 
     display_manager = None
     vehicle = None
@@ -360,8 +354,9 @@ def run_simulation(args, client):
                       vehicle, {'channels' : '64', 'range' : '100', 'points_per_second': '100000', 'rotation_frequency': '20'}, display_pos=[1, 2])
 
         #Lastly, instanciate the gui_CAM class to manage the app's options
-        class_menu = gui_CAM(display_manager.display, use_cuda)
-
+        class_menu = gui_CAM(display_manager.display, use_cuda, display_manager)
+        weather_manager = roc_functions.WeatherManager(world)
+        weather_manager.list_weather_presets()
         #Simulation loop --> to be changed with the call to run simulation from the class gui_CAM
         call_exit = False
         time_init_sim = timer.time()
@@ -405,15 +400,16 @@ def run_simulation(args, client):
                     if mouse_presses[2]:
                         print("Center Mouse key was clicked")
                         
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_w:
+                        weather_manager.next_weather()
+                        
             if call_exit:
                 print("called exit, finishing execution")
                 break
     except Exception as e:
         print(f'Is the simulation running?\n{e}')
-        print('****\ntraceback.format_exc():\n****',traceback.format_exc())
-        # exc_type, exc_obj, exc_tb = sys.exc_info()
-        # fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-        # print(exc_type, fname, exc_tb.tb_lineno)
+        print('********\n',traceback.format_exc())
         
     finally:
         if display_manager:
@@ -426,7 +422,6 @@ def run_simulation(args, client):
             world.apply_settings(original_settings)
         else:
             print('world object does not exist, connection with client was not established')
-
 
 
 def main():
@@ -479,13 +474,13 @@ def main():
         client = carla.Client(args.host, args.port)
         client.set_timeout(5.0)
 
-        run_simulation(args, client)
+        run_carla_CAM(args, client)
 
     except (RuntimeError, TypeError, NameError):
         _, generate_traffic = roc_functions.launch_carla_simulator_locally()
         client = carla.Client(args.host, args.port)
         client.set_timeout(15.0)
-        run_simulation(args, client)
+        run_carla_CAM(args, client)
 
     except KeyboardInterrupt:
         print('\nCancelled by user. Bye!')

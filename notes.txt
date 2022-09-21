@@ -50,3 +50,6 @@ Current model classification from the cam method always throws very low score re
 This could be caused by a bad input image for the cam method, verify. Try to pass the class from normal inference if problem is not solved to obtain the saliency mask for the desired class.
 
 USE THE FILTERED MODE OR NOT DEPENDING OF INPUT ONCE IT IS TESTED AND WORKING
+
+input_tensor shape before feeding the model is: 1,3,2428,1479
+normalized_image shape is: (2428, 1479, 3)
