@@ -307,7 +307,7 @@ def surface_to_cam(surface, cam_method, use_cuda=True,
                 grayscale_cam, inf_outputs, cam_targets = cam_method(input_tensor, target_classes)
                 print(f'CAM Generated for model {cam_method.model.__class__.__name__}')
                 
-                if debug:
+                if parameters.debug:
                     try:
                         plt.imshow(grayscale_cam.permute(1, 2, 0))
                         plt.show()
@@ -377,17 +377,17 @@ def method_menu(font, surface, model, target_layers):
         eigen_button = pygame.Rect(positions[4][0], positions[4][1], button_width, button_height)
         fullgrad_button = pygame.Rect(positions[5][0], positions[5][1], button_width, button_height)
 
-        pygame.draw.rect(surface, BUTTON_COLOR, grad_button)
+        pygame.draw.rect(surface, parameters.BUTTON_COLOR, grad_button)
         draw_text('GradCAM', font, (255, 255, 255), surface, positions[0][0], positions[0][1]+button_height-15)
-        pygame.draw.rect(surface, BUTTON_COLOR, score_button)
+        pygame.draw.rect(surface, parameters.BUTTON_COLOR, score_button)
         draw_text('ScoreCAM', font, (255, 255, 255), surface, positions[1][0], positions[1][1]+button_height-15)
-        pygame.draw.rect(surface, BUTTON_COLOR, xgradcam_button)
+        pygame.draw.rect(surface, parameters.BUTTON_COLOR, xgradcam_button)
         draw_text('XGradCAM', font, (255, 255, 255), surface, positions[2][0], positions[2][1]+button_height-15)
-        pygame.draw.rect(surface, BUTTON_COLOR, ablation_button)
+        pygame.draw.rect(surface, parameters.BUTTON_COLOR, ablation_button)
         draw_text('AblationCAM', font, (255, 255, 255), surface, positions[3][0], positions[3][1]+button_height-15)
-        pygame.draw.rect(surface, BUTTON_COLOR, eigen_button)
+        pygame.draw.rect(surface, parameters.BUTTON_COLOR, eigen_button)
         draw_text('EigenCAM', font, (255, 255, 255), surface, positions[4][0], positions[4][1]+button_height-15)
-        pygame.draw.rect(surface, BUTTON_COLOR, fullgrad_button)
+        pygame.draw.rect(surface, parameters.BUTTON_COLOR, fullgrad_button)
         draw_text('FullGrad', font, (255, 255, 255), surface, positions[5][0], positions[5][1]+button_height-15)
 
         if grad_button.collidepoint((mx, my)):
