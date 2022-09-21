@@ -224,14 +224,6 @@ def surface_to_cam(surface, cam_method, use_cuda=True,
                    target_classes: List[torch.nn.Module] = None):
     array = pygame.surfarray.pixels3d(surface)
     normalized_image = np.float32(array/255)
-    # if debug:
-    #     try:
-    #         # to plot the image with the correct orientation
-    #         plt.imshow(array.transpose(1, 0, 2))
-    #         plt.show()
-    #     except Exception as e:
-    #         print(f'plt.imshow(array.permute(1, 2, 0)) failed:\n{e}')
-            
     input_tensor = preprocess_image(array, use_cuda, False)
     
     if debug:
@@ -267,32 +259,43 @@ def surface_to_cam(surface, cam_method, use_cuda=True,
         
     except Exception as e:
         print(f'Exception:\n{e}')
-        print('Exception handled for CAM computation',
-              f'current location failed Cuda? -> {input_tensor.is_cuda}',
-              '| try CPU execution')
-        input_tensor = input_tensor.to('cpu')
-        cam_method.model.to('cpu')
-        try:
-            # you can pass the class targets to the cam method if desired to check a target
-            grayscale_cam, inf_outputs, cam_targets = cam_method(input_tensor, target_classes)
+        
+        if str(e) == 'not enough values to unpack (expected 3, got 1)':
+            print('Exception handled for unmodified CAM library')
+            grayscale_cam = cam_method(input_tensor, target_classes)
             print(f'CAM Generated for model {cam_method.model.__class__.__name__}')
-            
-            if debug:
-                try:
-                    plt.imshow(grayscale_cam.permute(1, 2, 0))
-                    plt.show()
-                except Exception as e:
-                    print(f'plt.imshow(grayscale_cam.permute(1, 2, 0)) failed:\n{e}')
-                    plt.imshow(grayscale_cam)
-                    plt.show()
-            
             grayscale_cam = grayscale_cam[0, :]
 
             visualization = show_cam_on_image(normalized_image, grayscale_cam, use_rgb=True)
             cam_surface = pygame.surfarray.make_surface(visualization)
-            return cam_surface, inf_outputs, cam_targets
-        except Exception as e:
-            print(f"Something failed in the CPU execution:\n {e}")
+            return cam_surface, None, None
+        else:
+            print('Exception handled for CAM computation',
+                f'current location failed Cuda? -> {input_tensor.is_cuda}',
+                '| try CPU execution')
+            input_tensor = input_tensor.to('cpu')
+            cam_method.model.to('cpu')
+            try:
+                # you can pass the class targets to the cam method if desired to check a target
+                grayscale_cam, inf_outputs, cam_targets = cam_method(input_tensor, target_classes)
+                print(f'CAM Generated for model {cam_method.model.__class__.__name__}')
+                
+                if debug:
+                    try:
+                        plt.imshow(grayscale_cam.permute(1, 2, 0))
+                        plt.show()
+                    except Exception as e:
+                        print(f'plt.imshow(grayscale_cam.permute(1, 2, 0)) failed:\n{e}')
+                        plt.imshow(grayscale_cam)
+                        plt.show()
+                
+                grayscale_cam = grayscale_cam[0, :]
+
+                visualization = show_cam_on_image(normalized_image, grayscale_cam, use_rgb=True)
+                cam_surface = pygame.surfarray.make_surface(visualization)
+                return cam_surface, inf_outputs, cam_targets
+            except Exception as e:
+                print(f"Something failed in the CPU execution:\n {e}")
 
 
 def blip_logo(screen, path):

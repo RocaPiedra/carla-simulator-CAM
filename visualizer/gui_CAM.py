@@ -421,7 +421,7 @@ class gui_CAM:
             print(f'target class is {target_class}')
             print(f"SINGLE DETECTION: {class_name} || {class_score*100}% ")
             
-        return class_name, class_score, probabilities
+        return class_name, class_score.cpu().detach().numpy(), probabilities
     
     
     def get_top_detections(self, input_image = None, probabilities = None, num_detections = 5):
@@ -484,7 +484,11 @@ class gui_CAM:
         print('time needed for visualization method creation :', time.time()-t0)
         
         t1 = time.time()
-        class_name, class_score = self.prob_calc_efficient(inf_outputs)
+        if inf_outputs is not None:
+            class_name, class_score = self.prob_calc_efficient(inf_outputs)
+        else:
+            class_name, class_score, inf_outputs = self.get_detection(img)
+
         class_percentage = str(round(class_score*100,2))
         print('time needed for probabilities calculation:', time.time()-t1)
         
@@ -519,7 +523,11 @@ class gui_CAM:
         print('time needed for visualization method creation :', time.time()-t0)
         
         t1 = time.time()
-        class_name, class_score = self.prob_calc_efficient(inf_outputs)
+        if inf_outputs is not None:
+            class_name, class_score = self.prob_calc_efficient(inf_outputs)
+        else:
+            class_name, class_score, inf_outputs = self.get_detection(img)
+
         class_percentage = str(round(class_score*100,2))
         print('time needed for probabilities calculation:', time.time()-t1)
         
@@ -703,11 +711,6 @@ class gui_CAM:
             
             elif event.key == pygame.K_t:
                 self.get_top_detections(input_image)
-                # if not parameters.paused:
-                #     print('show tops')
-                # else:
-                #     self.get_top_detections(input_image)
-                #     # self.get_detection(input_image)
                 return False
 
             elif event.key == pygame.K_s:
@@ -727,9 +730,13 @@ if __name__ == '__main__':
     call_exit = False
     # file_path = 'utils/test_images/carla_input/1.png'
     path = '/home/roc/imagenet-sample-images'
-    image_name = random.choice(os.listdir(path))
+    try:
+        image_name = random.choice(os.listdir(path))
+    except Exception as e:
+        print(f'Selected folder path {path} is not correct\n')
+        path = '/home/roc/imagenet-sample-images'
     print(image_name)
-    file_path = os.path.join(path, image_name)
+    file_path = os.path.join(path, image_name)    
     sample_image = pygame.image.load(file_path)
     display.blit(sample_image, [0,0])
     roc_functions.blip_image_centered(display, sample_image)
