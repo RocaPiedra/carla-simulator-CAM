@@ -30,7 +30,7 @@ import gc
 
 class gui_CAM:
     def __init__(self, display, use_cuda = True, display_manager = None):
-        self.model = resnet50(pretrained=True)
+        self.model = resnet34(pretrained=True)
         self.model_gradient_compatible = True
         self.display_manager = display_manager
         self.display = display
@@ -44,7 +44,8 @@ class gui_CAM:
         self.cam_name = None
         self.method_name = None
         self.model_name = 'ResNet'
-        self.CAM_BUTTON_COLOR = parameters.BUTTON_COLOR
+        self.NONGRAD_BUTTON_COLOR = parameters.BUTTON_COLOR
+        self.GRAD_BUTTON_COLOR = parameters.BUTTON_COLOR
         self.MODEL_BUTTON_COLOR = parameters.BUTTON_COLOR
         self.click = False
         self.class_list = roc_functions.get_imagenet_dictionary(url=None) 
@@ -59,6 +60,7 @@ class gui_CAM:
         self.main_location = None
         self.display_width, self.display_height = pygame.display.get_surface().get_size()
         #location where second cam is plotted in the display
+        
         self.compare_location = [int(2*self.display_width/3), int(self.display_height/2)]
 
         
@@ -73,6 +75,10 @@ class gui_CAM:
         button_height = 40
         num_options = 7
         positions = []
+        if not self.model_gradient_compatible:
+            self.GRAD_BUTTON_COLOR = parameters.RED_BUTTON_COLOR
+        else:
+            self.GRAD_BUTTON_COLOR = parameters.BUTTON_COLOR
                 
         for pos in range(num_options):
             
@@ -90,19 +96,19 @@ class gui_CAM:
         fullgrad_button = pygame.Rect(positions[3][0], positions[3][1], button_width, button_height)
         gradcampp_button = pygame.Rect(positions[1][0], positions[1][1], button_width, button_height)
 
-        pygame.draw.rect(self.display, self.CAM_BUTTON_COLOR, grad_button)
+        pygame.draw.rect(self.display, self.GRAD_BUTTON_COLOR, grad_button)
         draw_text('GradCAM', self.font, (255, 255, 255), self.display, positions[0][0]+10, positions[0][1]+button_height-20)
-        pygame.draw.rect(self.display, self.CAM_BUTTON_COLOR, score_button)
+        pygame.draw.rect(self.display, self.NONGRAD_BUTTON_COLOR, score_button)
         draw_text('ScoreCAM', self.font, (255, 255, 255), self.display, positions[4][0]+10, positions[4][1]+button_height-20)
-        pygame.draw.rect(self.display, self.CAM_BUTTON_COLOR, xgradcam_button)
+        pygame.draw.rect(self.display, self.GRAD_BUTTON_COLOR, xgradcam_button)
         draw_text('XGradCAM', self.font, (255, 255, 255), self.display, positions[2][0]+10, positions[2][1]+button_height-20)
-        pygame.draw.rect(self.display, self.CAM_BUTTON_COLOR, ablation_button)
+        pygame.draw.rect(self.display, self.NONGRAD_BUTTON_COLOR, ablation_button)
         draw_text('AblationCAM', self.font, (255, 255, 255), self.display, positions[5][0]+10, positions[5][1]+button_height-20)
-        pygame.draw.rect(self.display, self.CAM_BUTTON_COLOR, eigen_button)
+        pygame.draw.rect(self.display, self.NONGRAD_BUTTON_COLOR, eigen_button)
         draw_text('EigenCAM', self.font, (255, 255, 255), self.display, positions[6][0]+10, positions[6][1]+button_height-20)
-        pygame.draw.rect(self.display, self.CAM_BUTTON_COLOR, fullgrad_button)
+        pygame.draw.rect(self.display, self.GRAD_BUTTON_COLOR, fullgrad_button)
         draw_text('FullGrad', self.font, (255, 255, 255), self.display, positions[3][0]+10, positions[3][1]+button_height-20)
-        pygame.draw.rect(self.display, self.CAM_BUTTON_COLOR, gradcampp_button)
+        pygame.draw.rect(self.display, self.GRAD_BUTTON_COLOR, gradcampp_button)
         draw_text('GradCAM++', self.font, (255, 255, 255), self.display, positions[1][0]+10, positions[1][1]+button_height-20)
         
         pygame.display.update()
@@ -280,7 +286,7 @@ class gui_CAM:
         draw_text('Alexnet', self.font, (255, 255, 255), self.display, positions[1][0]+10, positions[1][1]+button_height-20)
         pygame.draw.rect(self.display, self.MODEL_BUTTON_COLOR, third_button)
         draw_text('VGG', self.font, (255, 255, 255), self.display, positions[2][0]+10, positions[2][1]+button_height-20)
-        pygame.draw.rect(self.display, self.MODEL_BUTTON_COLOR, fourth_button)
+        pygame.draw.rect(self.display, parameters.RED_BUTTON_COLOR, fourth_button)
         draw_text('YOLOv5', self.font, (255, 255, 255), self.display, positions[3][0]+10, positions[3][1]+button_height-20)
         
         pygame.display.update()
@@ -292,7 +298,7 @@ class gui_CAM:
                 if self.click:
                     if self.model.__class__.__name__ != 'ResNet':
                         self.clear_memory()
-                        self.model = resnet50(pretrained=True)
+                        self.model = resnet34(pretrained=True)
                         model_selection = False
                         model_name = 'ResNet'
                         self.model_gradient_compatible = True
@@ -550,6 +556,13 @@ class gui_CAM:
         if self.display_manager:
             self.display_manager.render()
         if self.filtered_cam:
+            if self.display_manager is None:
+                img_w, img_h = img.get_width(), img.get_height()
+                print(f'image width is {img_w}, display width is {self.display_width}')
+                self.compare_location = [self.display_width-img_w, 0]
+                print(f'New location to compare is {self.compare_location}')
+            else:
+                self.compare_location = [int(2*self.display_width/3), int(self.display_height/2)]
             class_name, class_score = self.run_cam_filtered(img, new_cam_method, self.compare_location, new_method_name)
         else:
             class_name, class_score = self.run_cam(img, new_cam_method, self.compare_location, new_method_name)
@@ -727,14 +740,13 @@ if __name__ == '__main__':
     display = pygame.display.set_mode([1920,1080], pygame.HWSURFACE | pygame.DOUBLEBUF)
     test_menu = gui_CAM(display)
     call_exit = False
-    # file_path = 'utils/test_images/carla_input/1.png'
     path = '/home/roc/imagenet-sample-images'
 
     try:
         image_name = random.choice(os.listdir(path))
     except Exception as e:
         print(f'Selected folder path {path} is not correct\n')
-        path = '/home/roc/imagenet-sample-images'
+        path = 'utils/test_images/carla_input'
         image_name = random.choice(os.listdir(path))
     print(image_name)
     file_path = os.path.join(path, image_name)    
@@ -742,7 +754,6 @@ if __name__ == '__main__':
     sample_image = pygame.image.load(file_path)
     display.blit(sample_image, [0,0])
     roc_functions.blip_image_centered(display, sample_image)
-    # input("enter to pass loaded image")
     while not call_exit:
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:

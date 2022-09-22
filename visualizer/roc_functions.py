@@ -4,6 +4,7 @@
 """
 import os
 import sys
+import traceback
 import numpy as np
 from PIL import Image
 from typing import List
@@ -244,9 +245,6 @@ def surface_to_cam(surface, cam_method, use_cuda=True,
                    target_classes: List[torch.nn.Module] = None):
     
     array = pygame.surfarray.pixels3d(surface)
-
-    normalized_image = np.float32(array/255)
-
     input_tensor = preprocess_image(array, use_cuda, False)
     
     if parameters.debug:
@@ -286,6 +284,7 @@ def surface_to_cam(surface, cam_method, use_cuda=True,
         
     except Exception as e:
         print(f'Exception:\n{e}')
+        print(f'{traceback.format_exc()}')
         if str(e) == 'not enough values to unpack (expected 3, got 1)':
             print('Exception handled for unmodified CAM library')
             grayscale_cam = cam_method(input_tensor, target_classes)
@@ -301,6 +300,7 @@ def surface_to_cam(surface, cam_method, use_cuda=True,
                 f'current location failed Cuda? -> {input_tensor.is_cuda}',
                 '| try CPU execution')
             input_tensor = input_tensor.to('cpu')
+            cam_method.cuda = False
             cam_method.model.to('cpu')
             try:
                 # you can pass the class targets to the cam method if desired to check a target
