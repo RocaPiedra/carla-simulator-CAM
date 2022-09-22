@@ -687,6 +687,7 @@ class gui_CAM:
                         
             elif event.key == pygame.K_m:
                 if not parameters.paused:
+                    parameters.paused = True
                     cam_name = self.select_cam()
                     
                     if self.display_manager:
@@ -702,6 +703,8 @@ class gui_CAM:
                         pygame.display.update()
                     else:                        
                         print(f'{cam_name} selected, loaded')
+                    
+                    parameters.paused = False
                     return False
                 else:
                     print('Comparing with another method')
@@ -712,6 +715,7 @@ class gui_CAM:
                 
             elif event.key == pygame.K_n:
                 if not parameters.paused:
+                    parameters.paused = True
                     self.select_model()
                     
                     if self.display_manager:
@@ -719,6 +723,7 @@ class gui_CAM:
                     else:
                         roc_functions.blip_image_centered(self.display, input_image)
                     
+                    parameters.paused = False
                     return False
             
             elif event.key == pygame.K_t:

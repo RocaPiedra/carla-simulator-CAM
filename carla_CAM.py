@@ -378,7 +378,7 @@ def run_carla_CAM(args, client):
             elif args.sync and parameters.paused:
                 # increase timeout
                 client.set_timeout(100.0)
-                
+                print('PAUSED')    
             else:
                 world.wait_for_tick()
                 # Render received data
