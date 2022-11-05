@@ -208,11 +208,11 @@ def launch_carla_simulator_locally(unreal_engine_path = parameters.unreal_engine
     sleep(5)
     print('Generating traffic...')
     try:
-        generate_traffic = subprocess.Popen(["python3", f"{os.getcwd()}/carlacomms/generate_traffic.py", '--asynch', '--tm-port=8001'], stdout=subprocess.PIPE)
+        generate_traffic = subprocess.Popen([parameters.python_env, f"{os.getcwd()}/carlacomms/generate_traffic.py", '--asynch', '--tm-port=8001'], stdout=subprocess.PIPE)
         
     except:
         print('Failed to generate traffic, check the path...')
-        generate_traffic = subprocess.Popen(["python3", "../carlacomms/generate_traffic.py", '--asynch', '--tm-port=8001'], stdout=subprocess.PIPE)
+        generate_traffic = subprocess.Popen([parameters.python_env, "../carlacomms/generate_traffic.py", '--asynch', '--tm-port=8001'], stdout=subprocess.PIPE)
     return unreal_engine, generate_traffic
 
 
