@@ -4,6 +4,7 @@
 """
 import os
 import sys
+import traceback
 import numpy as np
 from PIL import Image
 from typing import List
@@ -207,11 +208,11 @@ def launch_carla_simulator_locally(unreal_engine_path = parameters.unreal_engine
     sleep(5)
     print('Generating traffic...')
     try:
-        generate_traffic = subprocess.Popen(["python3", f"{os.getcwd()}/carlacomms/generate_traffic.py", '--asynch', '--tm-port=8001'], stdout=subprocess.PIPE)
+        generate_traffic = subprocess.Popen([parameters.python_env, f"{os.getcwd()}/carlacomms/generate_traffic.py", '--asynch', '--tm-port=8001'], stdout=subprocess.PIPE)
         
     except:
         print('Failed to generate traffic, check the path...')
-        generate_traffic = subprocess.Popen(["python3", "../carlacomms/generate_traffic.py", '--asynch', '--tm-port=8001'], stdout=subprocess.PIPE)
+        generate_traffic = subprocess.Popen([parameters.python_env, "../carlacomms/generate_traffic.py", '--asynch', '--tm-port=8001'], stdout=subprocess.PIPE)
     return unreal_engine, generate_traffic
 
 
@@ -283,33 +284,45 @@ def surface_to_cam(surface, cam_method, use_cuda=True,
         
     except Exception as e:
         print(f'Exception:\n{e}')
-        print('Exception handled for CAM computation',
-              f'is current location Cuda? -> {input_tensor.is_cuda}',
-              '| try CPU execution')
-        input_tensor = input_tensor.cpu()
-        cam_method.model.cpu() #does not work
-        cam_method.cuda = False
-        try:
-            # you can pass the class targets to the cam method if desired to check a target
-            grayscale_cam, inf_outputs, cam_targets = cam_method(input_tensor, target_classes)
+        print(f'{traceback.format_exc()}')
+        if str(e) == 'not enough values to unpack (expected 3, got 1)':
+            print('Exception handled for unmodified CAM library')
+            grayscale_cam = cam_method(input_tensor, target_classes)
             print(f'CAM Generated for model {cam_method.model.__class__.__name__}')
-            
-            if parameters.debug:
-                try:
-                    plt.imshow(grayscale_cam.permute(1, 2, 0))
-                    plt.show()
-                except Exception as e:
-                    print(f'[W]plt.imshow(grayscale_cam.permute(1, 2, 0)) failed:\n{e}')
-                    plt.imshow(grayscale_cam)
-                    plt.show()
-            
+
             grayscale_cam = grayscale_cam[0, :]
 
             visualization = show_cam_on_image(normalized_image, grayscale_cam, use_rgb=True)
             cam_surface = pygame.surfarray.make_surface(visualization)
-            return cam_surface, inf_outputs, cam_targets
-        except Exception as e:
-            print(f"Something failed in the CPU execution:\n {e}")
+            return cam_surface, None, None
+        else:
+            print('Exception handled for CAM computation',
+                f'current location failed Cuda? -> {input_tensor.is_cuda}',
+                '| try CPU execution')
+            input_tensor = input_tensor.to('cpu')
+            cam_method.cuda = False
+            cam_method.model.to('cpu')
+            try:
+                # you can pass the class targets to the cam method if desired to check a target
+                grayscale_cam, inf_outputs, cam_targets = cam_method(input_tensor, target_classes)
+                print(f'CAM Generated for model {cam_method.model.__class__.__name__}')
+                
+                if parameters.debug:
+                    try:
+                        plt.imshow(grayscale_cam.permute(1, 2, 0))
+                        plt.show()
+                    except Exception as e:
+                        print(f'plt.imshow(grayscale_cam.permute(1, 2, 0)) failed:\n{e}')
+                        plt.imshow(grayscale_cam)
+                        plt.show()
+                
+                grayscale_cam = grayscale_cam[0, :]
+
+                visualization = show_cam_on_image(normalized_image, grayscale_cam, use_rgb=True)
+                cam_surface = pygame.surfarray.make_surface(visualization)
+                return cam_surface, inf_outputs, cam_targets
+            except Exception as e:
+                print(f"Something failed in the CPU execution:\n {e}")
 
 
 def blip_logo(screen, path):
@@ -364,17 +377,17 @@ def method_menu(font, surface, model, target_layers):
         eigen_button = pygame.Rect(positions[4][0], positions[4][1], button_width, button_height)
         fullgrad_button = pygame.Rect(positions[5][0], positions[5][1], button_width, button_height)
 
-        pygame.draw.rect(surface, BUTTON_COLOR, grad_button)
+        pygame.draw.rect(surface, parameters.BUTTON_COLOR, grad_button)
         draw_text('GradCAM', font, (255, 255, 255), surface, positions[0][0], positions[0][1]+button_height-15)
-        pygame.draw.rect(surface, BUTTON_COLOR, score_button)
+        pygame.draw.rect(surface, parameters.BUTTON_COLOR, score_button)
         draw_text('ScoreCAM', font, (255, 255, 255), surface, positions[1][0], positions[1][1]+button_height-15)
-        pygame.draw.rect(surface, BUTTON_COLOR, xgradcam_button)
+        pygame.draw.rect(surface, parameters.BUTTON_COLOR, xgradcam_button)
         draw_text('XGradCAM', font, (255, 255, 255), surface, positions[2][0], positions[2][1]+button_height-15)
-        pygame.draw.rect(surface, BUTTON_COLOR, ablation_button)
+        pygame.draw.rect(surface, parameters.BUTTON_COLOR, ablation_button)
         draw_text('AblationCAM', font, (255, 255, 255), surface, positions[3][0], positions[3][1]+button_height-15)
-        pygame.draw.rect(surface, BUTTON_COLOR, eigen_button)
+        pygame.draw.rect(surface, parameters.BUTTON_COLOR, eigen_button)
         draw_text('EigenCAM', font, (255, 255, 255), surface, positions[4][0], positions[4][1]+button_height-15)
-        pygame.draw.rect(surface, BUTTON_COLOR, fullgrad_button)
+        pygame.draw.rect(surface, parameters.BUTTON_COLOR, fullgrad_button)
         draw_text('FullGrad', font, (255, 255, 255), surface, positions[5][0], positions[5][1]+button_height-15)
 
         if grad_button.collidepoint((mx, my)):
