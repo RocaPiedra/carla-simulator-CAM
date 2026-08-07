@@ -378,7 +378,7 @@ def run_carla_CAM(args, client):
             elif args.sync and parameters.paused:
                 # increase timeout
                 client.set_timeout(100.0)
-                
+                print('PAUSED')    
             else:
                 world.wait_for_tick()
                 # Render received data
@@ -408,8 +408,8 @@ def run_carla_CAM(args, client):
                 print("called exit, finishing execution")
                 break
     except Exception as e:
-        print(f'Is the simulation running?\n{e}')
-        print('********\n',traceback.format_exc())
+        print(f'Is the simulation running?')
+        # print(f'\n{e}********\n{traceback.format_exc()}')
         
     finally:
         if display_manager:

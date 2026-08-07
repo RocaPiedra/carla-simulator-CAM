@@ -1,7 +1,9 @@
+grad-cam
+carla
+pygame
 numpy
 opencv-python
 pandas
 Pillow
 scipy
-opencv-python
 matplotlib
